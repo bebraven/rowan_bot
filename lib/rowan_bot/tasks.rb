@@ -21,10 +21,6 @@ module RowanBot
       zoom_api.create_meeting(user_id, meeting_details)
     end
 
-    def test
-      'Hello World'
-    end
-
     private
 
     attr_reader :zoom_api
