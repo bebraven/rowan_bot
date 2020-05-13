@@ -45,7 +45,7 @@ module RowanBot
         )
       end
 
-      response.body
+      JSON.parse(response.body)
     end
 
     def shared_headers
