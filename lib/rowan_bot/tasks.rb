@@ -12,8 +12,12 @@ module RowanBot
     end
 
     def add_participants_to_meetings(meeting_id, participants)
-      participants.each do |participant|
-        zoom_api.add_registrant(meeting_id, participant)
+      participants.map do |participant|
+        response = zoom_api.add_registrant(meeting_id, participant)
+        join_url = response['join_url']
+        participant['join_url'] = join_url
+
+        participant
       end
     end
 
