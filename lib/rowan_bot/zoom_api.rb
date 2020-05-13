@@ -27,13 +27,13 @@ module RowanBot
     attr_reader :token
 
     def fetch(url, params = {})
-      response = faraday.get(url, params, shared_headers)
+      response = Faraday.get(url, params, shared_headers)
 
       extract_response(response)
     end
 
     def post(url, data)
-      response = faraday.post(url, data.to_json, shared_headers)
+      response = Faraday.post(url, data.to_json, shared_headers)
 
       extract_response(response)
     end
