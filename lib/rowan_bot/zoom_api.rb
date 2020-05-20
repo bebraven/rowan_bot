@@ -40,7 +40,7 @@ module RowanBot
 
     def extract_response(response)
       unless [201, 200].include?(response.status)
-        raise 'Something went wrong communicating with zoom'
+        raise "Something went wrong communicating with zoom: #{response.body}"
       end
 
       JSON.parse(response.body)
