@@ -12,6 +12,7 @@ module RowanBot
     end
 
     def add_participants_to_meetings(meeting_id, participants)
+      logger.info('Started adding participants')
       participants.map do |participant|
         response = zoom_api.add_registrant(meeting_id, participant)
         join_url = response['join_url']
@@ -22,11 +23,16 @@ module RowanBot
     end
 
     def create_weekly_zoom_meeting(user_id, meeting_details)
+      logger.info('Started creating weekly meeting')
       zoom_api.create_meeting(user_id, meeting_details)
     end
 
     private
 
     attr_reader :zoom_api
+
+    def logger
+      RowanBot.logger
+    end
   end
 end
