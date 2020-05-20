@@ -17,6 +17,7 @@ module RowanBot
     end
 
     def add_registrant(meeting_id, data)
+      logger.info('Adding registrants')
       url = "#{BASE_URL}/meetings/#{meeting_id}/registrants"
 
       post(url, data)
@@ -24,7 +25,7 @@ module RowanBot
 
     private
 
-    attr_reader :token
+    attr_reader :token, logger
 
     def fetch(url, params = {})
       response = Faraday.get(url, params, shared_headers)
