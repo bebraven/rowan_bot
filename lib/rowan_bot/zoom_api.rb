@@ -25,7 +25,7 @@ module RowanBot
 
     private
 
-    attr_reader :token, logger
+    attr_reader :token
 
     def fetch(url, params = {})
       response = Faraday.get(url, params, shared_headers)
@@ -52,6 +52,10 @@ module RowanBot
         'Content-Type' => 'application/json',
         'Authorization' => "Bearer #{token}"
       }
+    end
+
+    def logger
+      RowanBot.logger
     end
   end
 end
