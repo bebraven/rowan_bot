@@ -11,13 +11,14 @@ module RowanBot
     end
 
     def create_meeting(user_id, data)
+      logger.info("Creating a meeting: #{data['topic']}")
       url = "#{BASE_URL}/users/#{user_id}/meetings"
 
       post(url, data)
     end
 
     def add_registrant(meeting_id, data)
-      logger.info('Adding registrants')
+      logger.info("Adding zoom registrant: #{data['email']}")
       url = "#{BASE_URL}/meetings/#{meeting_id}/registrants"
 
       post(url, data)
@@ -41,6 +42,8 @@ module RowanBot
 
     def extract_response(response)
       unless [201, 200].include?(response.status)
+        logger.warn('Request to zoom was not successful')
+        logger.error(response.body)
         raise "Something went wrong communicating with zoom: #{response.body}"
       end
 
