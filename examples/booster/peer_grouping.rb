@@ -8,7 +8,8 @@ tasks = RowanBot::Tasks.new
 tasks.salesforce_api = RowanBot::SalesforceAPI.new(credentials)
 
 # The id or the program to go through this
-program_id = 'a2Y7A0000002BD1UAM'
+# program_id = 'a2Y7A0000002BD1UAM'
+program_id = ''
 # How big should a cohort be
 cohort_size = 2
 

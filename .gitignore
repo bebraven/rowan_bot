@@ -9,3 +9,9 @@
 
 # rspec failure tracking
 .rspec_status
+
+# Mac OSX
+.DS_Store
+
+# Secrets
+*secret*
