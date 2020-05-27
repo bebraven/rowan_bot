@@ -1,6 +1,7 @@
 require 'logger'
 require 'rowan_bot/version'
 require 'rowan_bot/zoom_api'
+require 'rowan_bot/salesforce_api'
 require 'rowan_bot/tasks'
 
 module RowanBot
