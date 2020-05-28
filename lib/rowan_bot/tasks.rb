@@ -42,8 +42,8 @@ module RowanBot
       channels = slack_api.create_peer_group_channels(channel_names)
       transformed_users = slack_api.add_slack_ids_to_users(users)
       transformed_users = transformed_users.map do |t_user|
-        channel = channels.find {|c| c.name.eql?(t_user['peer_group']) }
-        t_user['channel_id'] = channel.id
+        channel = channels.find {|c| c['name'].eql?(t_user['peer_group']) }
+        t_user['channel_id'] = channel['id']
         t_user
       end
       transformed = transformed_users.inject({}) do |user|

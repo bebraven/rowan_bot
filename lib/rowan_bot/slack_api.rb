@@ -12,7 +12,7 @@ module RowanBot
 
     def create_peer_group_channels(names)
       names.map do |name|
-        channel = client.conversations_create(name: name, is_private: true)
+        channel = client.conversations_create(name: name, is_private: true).channel
         logger.info("Created channel #{name}")
         { 'name' => channel.name, 'id' => channel.id }
       end
