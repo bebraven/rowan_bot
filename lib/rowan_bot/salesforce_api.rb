@@ -88,7 +88,7 @@ module RowanBot
         peer_group = peer_groups.to_a[idx % cohort_quantity]
         client.update('Participant__c', Id: participant.Id, Cohort__c: peer_group.Id)
         logger.info("#{participant.Name} assigned to #{peer_group.Name}")
-        { name: participant.Name, email: participant.Contact__r.Email, peer_group: peer_group.Name }
+        { salesforce_id: participant.Id, name: participant.Name, email: participant.Contact__r.Email, peer_group: peer_group.Name }
       end
     end
 
