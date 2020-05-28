@@ -43,6 +43,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'faraday'
   spec.add_dependency 'restforce', '~> 4.2.2'
   spec.add_dependency 'docusign_esign'
+  spec.add_dependency 'slack-ruby-client'
 
   spec.add_development_dependency 'bundler', '~> 2.0'
   spec.add_development_dependency 'rake', '~> 10.0'
