@@ -1,4 +1,4 @@
-require 'slack-ruby_client'
+require 'slack-ruby-client'
 
 module RowanBot
   class SlackAPI
