@@ -59,7 +59,7 @@ module RowanBot
     
     def assign_peer_groups_to_cohort(program, cohort, cohort_size)
       logger.info('Getting participants for cohort schedule')
-      participants = client.query("select Id, Name from Participant__c where Cohort_Schedule__c = '#{cohort.Id}'")
+      participants = client.query("select Id, Name, Contact__r.Email from Participant__c where Cohort_Schedule__c = '#{cohort.Id}'")
       # There must be at least cohort_size people to get this to create
       # peer groups
       peer_group_count = (participants.count / cohort_size.to_f).floor
@@ -88,7 +88,7 @@ module RowanBot
         peer_group = peer_groups.to_a[idx % cohort_quantity]
         client.update('Participant__c', Id: participant.Id, Cohort__c: peer_group.Id)
         logger.info("#{participant.Name} assigned to #{peer_group.Name}")
-        { name: participant.Name, peer_group: peer_group.Name }
+        { name: participant.Name, email: participant.Contact__r.Email, peer_group: peer_group.Name }
       end
     end
 
