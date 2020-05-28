@@ -1,12 +1,13 @@
 module RowanBot
   # Tasks class for tasks to be done
   class Tasks
-    attr_writer :zoom_api, :salesforce_api, :docusign_api
+    attr_writer :zoom_api, :salesforce_api, :docusign_api, :slack_api
     # I do not want to break api
-    def initialize(zoom_api = nil, salesforce_api = nil, docusign_api = nil)
+    def initialize(zoom_api = nil, salesforce_api = nil, docusign_api = nil, slack_api = nil)
       @zoom_api = zoom_api
       @salesforce_api = salesforce_api
       @docusign_api = docusign_api
+      @slack_api = slack_api
     end
 
     def add_participants_to_meetings(meeting_id, participants)
@@ -36,9 +37,33 @@ module RowanBot
       salesforce_api.assign_peer_groups_to_program(program_id, cohort_size)
     end
 
+    def add_users_to_peer_group_channels(users)
+      channel_names = users.map { |entry| entry['peer_group'] }.uniq
+      channels = slack_api.create_peer_group_channels(channel_names)
+      transformed_users = slack_api.add_slack_ids_to_users(users)
+      transformed_users = transformed_users.map do |t_user|
+        channel = channels.find {|c| c.name.eql?(t_user['peer_group']) }
+        t_user['channel_id'] = channel.id
+        t_user
+      end
+      transformed = transformed_users.inject({}) do |user|
+        if acc[user['channel_id']].nil?
+          acc[user['channel_id']] = [user['slack_id']]
+        else
+          acc[user['channel_id']] << user['slack_id']
+        end
+
+        acc
+      end
+      # Add users
+      transformed.each do |channel_id, user_ids|
+        slack_api.add_users_to_peer_group_channel(channel_id, user_ids)
+      end
+    end
+
     private
 
-    attr_reader :zoom_api, :salesforce_api, :docusign_api
+    attr_reader :zoom_api, :salesforce_api, :docusign_api, :slack_api
 
     def logger
       RowanBot.logger
