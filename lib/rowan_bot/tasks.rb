@@ -46,7 +46,7 @@ module RowanBot
         t_user['channel_id'] = channel['id']
         t_user
       end
-      transformed = transformed_users.inject({}) do |user|
+      transformed = transformed_users.inject({}) do |acc, user|
         if acc[user['channel_id']].nil?
           acc[user['channel_id']] = [user['slack_id']]
         else
