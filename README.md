@@ -18,6 +18,11 @@ Or install it yourself as:
 
     $ gem install rowan_bot
 
+## Configuration
+Many of the various tasks in this gem rely on configuration to work.
+See .env.example for a list of the configurable environment variables that
+you may have to set for a particular task to work.
+
 ## Usage
 
 TODO: Write usage instructions here

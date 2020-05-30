@@ -3,13 +3,11 @@ require 'csv'
 require 'rowan_bot'
 
 # Read zoom token from file
-zoom_token = File.read('secret.txt').chomp
 user_id = File.read('user_id.txt').chomp
 meeting_details = YAML.load_file('meeting.yaml')
 participants = CSV.read('participants.csv', headers: true).map(&:to_h)
 
-zoom_api = RowanBot::ZoomAPI.new(zoom_token)
-tasks = RowanBot::Tasks.new(zoom_api)
+tasks = RowanBot::Tasks.new(RowanBot::ZoomAPI.new)
 
 # Use this to create a meeting
 meeting = tasks.create_weekly_zoom_meeting(user_id, meeting_details)

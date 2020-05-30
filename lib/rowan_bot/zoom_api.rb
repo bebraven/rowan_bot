@@ -6,8 +6,8 @@ module RowanBot
   class ZoomAPI
     BASE_URL = 'https://api.zoom.us/v2'.freeze
 
-    def initialize(token)
-      @token = token
+    def initialize
+      @token = ENV['ZOOM_TOKEN']
     end
 
     def create_meeting(user_id, data)

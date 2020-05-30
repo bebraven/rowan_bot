@@ -3,17 +3,15 @@ require 'restforce'
 module RowanBot
   # SalesforceAPI class
   class SalesforceAPI
-    def initialize(
-      username:, password:, host:, security_token:, client_id:, client_secret:
-    )
+    def initialize
       @client = Restforce.new(
-        username: username,
-        password: password,
-        host: host,
-        security_token: security_token,
-        client_id: client_id,
-        client_secret: client_secret,
-        api_version: '41.0'
+        username: ENV['SALESFORCE_PLATFORM_USERNAME'],
+        password: ENV['SALESFORCE_PLATFORM_PASSWORD'],
+        host: ENV['SALESFORCE_HOST'],
+        security_token: ENV['SALESFORCE_PLATFORM_SECURITY_TOKEN'],
+        client_id: ENV['SALESFORCE_PLATFORM_CONSUMER_KEY'],
+        client_secret: ENV['SALESFORCE_PLATFORM_CONSUMER_SECRET'],
+        api_version: ENV.fetch('SALESFORCE_API_VERSION') { '48.0' } 
       )
     end
 

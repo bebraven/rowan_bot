@@ -1,11 +1,8 @@
-require 'yaml'
 require 'csv'
 require 'rowan_bot'
 
-# There should be a secrets.yaml in the same location as this file
-credentials = YAML.load_file('secrets.yaml').transform_keys(&:to_sym)
 tasks = RowanBot::Tasks.new
-tasks.salesforce_api = RowanBot::SalesforceAPI.new(credentials)
+tasks.salesforce_api = RowanBot::SalesforceAPI.new()
 
 # The id or the program to go through this
 # program_id = 'a2Y7A0000002BD1UAM'
