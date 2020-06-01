@@ -27,8 +27,10 @@ module RowanBot
 
     def sync_signed_waivers_to_salesforce
       logger.info('Started syncing waiver details to salesforce')
-      signed_emails = docusign_api.recently_signed_emails
-      salesforce_api.sign_participants_waivers_by_email(signed_emails)
+      p ENV
+      # signed_emails = docusign_api.recently_signed_emails
+      # p signed_emails
+      # salesforce_api.sign_participants_waivers_by_email(signed_emails)
     end
 
     def assign_peer_groups_to_program(program_id, cohort_size = 10)
