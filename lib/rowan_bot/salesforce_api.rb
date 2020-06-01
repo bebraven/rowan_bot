@@ -13,7 +13,7 @@ module RowanBot
         client_secret: ENV['SALESFORCE_PLATFORM_CONSUMER_SECRET'],
         api_version: ENV.fetch('SALESFORCE_API_VERSION') { '48.0' } 
       )
-      @particiapnt_record_type_ids = {}
+      @participant_record_type_ids = {}
     end
 
     def assign_peer_groups_to_program(program_id, cohort_size)
@@ -78,12 +78,12 @@ module RowanBot
     # Gets and caches the RecordTypeId for a Participant__c object given the "developername".
     # An example developername is "Booster_Student"
     def get_participant_record_type_id(developername)
-      unless @particiapnt_record_type_ids['developername']
+      unless @participant_record_type_ids[developername]
         rti = client.query("select id from RecordType where sObjectType='Participant__c' AND developername = '#{developername}' limit 1").first
         logger.debug("Found RecordTypeId for Participant__c with #{developername}: #{rti}")
-        @particiapnt_record_type_ids['developername'] = rti.Id
+        @participant_record_type_ids[developername] = rti.Id
       end
-      @particiapnt_record_type_ids['developername']
+      @participant_record_type_ids[developername]
     end
 
     def logger
