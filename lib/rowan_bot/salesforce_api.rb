@@ -13,6 +13,7 @@ module RowanBot
         client_secret: ENV['SALESFORCE_PLATFORM_CONSUMER_SECRET'],
         api_version: ENV.fetch('SALESFORCE_API_VERSION') { '48.0' } 
       )
+      @particiapnt_record_type_ids = {}
     end
 
     def assign_peer_groups_to_program(program_id, cohort_size)
@@ -24,6 +25,15 @@ module RowanBot
       cohorts.inject([]) do |acc, cohort|
         acc + assign_peer_groups_to_cohort(program, cohort, cohort_size)
       end
+    end
+
+    # Only implemented for Booster students at the moment.
+    # If we start doing this for folks who could have multiple Participant objects, we'll
+    # have to update this to account for that.
+    def set_student_waiver_field(email, value)
+      record_type_id = get_participant_record_type_id('Booster_Student') 
+      participant = client.query("select Id, Student_Waiver_Signed__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' limit 1").first
+      client.update('Participant__c', Id: participant.Id, Student_Waiver_Signed__c: value)
     end
 
     private
@@ -63,6 +73,17 @@ module RowanBot
         logger.info("#{participant.Name} assigned to #{peer_group.Name}")
         { name: participant.Name, peer_group: peer_group.Name }
       end
+    end
+
+    # Gets and caches the RecordTypeId for a Participant__c object given the "developername".
+    # An example developername is "Booster_Student"
+    def get_participant_record_type_id(developername)
+      unless @particiapnt_record_type_ids['developername']
+        rti = client.query("select id from RecordType where sObjectType='Participant__c' AND developername = '#{developername}' limit 1").first
+        logger.debug("Found RecordTypeId for Participant__c with #{developername}: #{rti}")
+        @particiapnt_record_type_ids['developername'] = rti.Id
+      end
+      @particiapnt_record_type_ids['developername']
     end
 
     def logger
