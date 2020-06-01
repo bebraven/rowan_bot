@@ -26,7 +26,9 @@ module RowanBot
       check_token
       options =  DocuSign_eSign::ListStatusChangesOptions.new
       options.from_date = (Date.today - 30).strftime("%Y/%m/%d")
-      envelope_api.list_status_changes(account_id, options)
+      envelope_api
+        .list_status_changes(account_id, options)
+        .envelopes
     end
 
     def should_update_token?
