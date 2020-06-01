@@ -14,16 +14,20 @@ module RowanBot
       @expires_in = nil
     end
 
+    def recently_signed_emails
+      list_envelopes.map { |envelop| envelop.envelopId }
+    end
+
+    private
+
+    attr_accessor :client, :envelope_api, :account_id, :expires_in, :account 
+
     def list_envelopes
       check_token
       options =  DocuSign_eSign::ListStatusChangesOptions.new
       options.from_date = (Date.today - 30).strftime("%Y/%m/%d")
       envelope_api.list_status_changes(account_id, options)
     end
-
-    private
-
-    attr_accessor :client, :envelope_api, :account_id, :expires_in, :account 
 
     def should_update_token?
       return true if expires_in.nil?
