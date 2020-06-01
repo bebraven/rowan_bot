@@ -27,19 +27,36 @@ module RowanBot
       end
     end
 
-    # Only implemented for Booster students at the moment.
-    # If we start doing this for folks who could have multiple Participant objects, we'll
-    # have to update this to account for that.
-    def set_student_waiver_field(email, value)
-      record_type_id = get_participant_record_type_id('Booster_Student') 
-      participant = client.query("select Id, Student_Waiver_Signed__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' limit 1").first
-      client.update('Participant__c', Id: participant.Id, Student_Waiver_Signed__c: value)
+    def sign_participants_waivers_by_email(emails)
+      emails.filter { |email| !set_student_waiver_field(email).nil? }
     end
 
     private
 
     attr_reader :client
 
+    # Only implemented for Booster students at the moment.
+    # If we start doing this for folks who could have multiple Participant objects, we'll
+    # have to update this to account for that.
+    def set_student_waiver_field(email, value = true)
+      logger.info("Setting waiver for #{email} to #{value}")
+      record_type_id = get_participant_record_type_id('Booster_Student') 
+      participant = client.query("select Id, Student_Waiver_Signed__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' limit 1").first
+      if participant.nil?
+        logger.warn("#{email} was not found in salesforce")
+        return
+      end
+
+      if participant.Student_Waiver_Signed__c
+        logger.info("#{email} has already signed in salesforce")
+        return 
+      end
+
+      client.update('Participant__c', Id: participant.Id, Student_Waiver_Signed__c: value)
+      email
+    end
+
+    
     def assign_peer_groups_to_cohort(program, cohort, cohort_size)
       logger.info('Getting participants for cohort schedule')
       participants = client.query("select Id, Name from Participant__c where Cohort_Schedule__c = '#{cohort.Id}'")
