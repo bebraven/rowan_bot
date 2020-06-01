@@ -40,9 +40,9 @@ module RowanBot
     # have to update this to account for that.
     def set_student_waiver_field(email, value = true)
       logger.info("Setting waiver for #{email} to #{value}")
-      # record_type_id = get_participant_record_type_id('Booster_Student') 
-      # participant = client.query("select Id, Student_Waiver_Signed__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' limit 1").first
-      # client.update('Participant__c', Id: participant.Id, Student_Waiver_Signed__c: value)
+      record_type_id = get_participant_record_type_id('Booster_Student') 
+      participant = client.query("select Id, Student_Waiver_Signed__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' limit 1").first
+      client.update('Participant__c', Id: participant.Id, Student_Waiver_Signed__c: value)
     end
 
     
