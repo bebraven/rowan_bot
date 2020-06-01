@@ -28,18 +28,28 @@ module RowanBot
     def list_recipients(envelop_id)
       check_token
 
-      envelope_api
+      ensure_array(
+        envelope_api
         .list_recipients(account_id, envelop_id)
         .signers
+      )
     end
 
     def list_envelopes(days)
       check_token
       options =  DocuSign_eSign::ListStatusChangesOptions.new
       options.from_date = (Date.today - days).strftime("%Y/%m/%d")
-      envelope_api
+      ensure_array(
+        envelope_api
         .list_status_changes(account_id, options)
         .envelopes
+      )
+    end
+
+    def ensure_array(response)
+      return [] if response.nil?
+
+      response
     end
 
     def should_update_token?
