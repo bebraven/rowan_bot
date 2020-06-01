@@ -18,7 +18,6 @@ module RowanBot
       check_token
       options =  DocuSign_eSign::ListStatusChangesOptions.new
       options.from_date = (Date.today - 30).strftime("%Y/%m/%d")
-      p @account_id
       envelope_api.list_status_changes(account_id, options)
     end
 
@@ -44,11 +43,10 @@ module RowanBot
         ENV['BZ_DOCUSIGN_USER_GUID'],
         ENV['BZ_DOCUSIGN_RSA_PRIVATE_KEY']
       )
-      account = get_account_info(response.access_token)
+      self.account = get_account_info(response.access_token)
       client.config.host = account.base_uri
-      p account.account_id
-      account_id = account.account_id
-      expires_in = Time.now.to_f + TOKEN_EXPIRATION_IN_SECONDS # would be better to receive the expires
+      self.account_id = account.account_id
+      self.expires_in = Time.now.to_f + TOKEN_EXPIRATION_IN_SECONDS # would be better to receive the expires
     end
   
     def get_account_info(access_token)
