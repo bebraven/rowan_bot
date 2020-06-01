@@ -14,8 +14,8 @@ module RowanBot
       @expires_in = nil
     end
 
-    def recently_signed_emails
-      envelop_ids = list_envelopes.map(&:envelope_id)
+    def recently_signed_emails(days)
+      envelop_ids = list_envelopes(days).map(&:envelope_id)
       envelop_ids.inject([]) do |acc, envelop_id|
         acc + list_recipients(envelop_id).map(&:email)
       end
@@ -33,10 +33,10 @@ module RowanBot
         .signers
     end
 
-    def list_envelopes
+    def list_envelopes(days)
       check_token
       options =  DocuSign_eSign::ListStatusChangesOptions.new
-      options.from_date = (Date.today - 30).strftime("%Y/%m/%d")
+      options.from_date = (Date.today - days).strftime("%Y/%m/%d")
       envelope_api
         .list_status_changes(account_id, options)
         .envelopes
