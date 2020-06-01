@@ -15,12 +15,23 @@ module RowanBot
     end
 
     def recently_signed_emails
-      list_envelopes.map { |envelop| envelop.envelopId }
+      envelop_id = list_envelopes.map(&:envelop_id)
+      envelop_ids.inject([]) do |acc, envelop_id|
+        acc + list_recipients(envelop_id).map(&:email)
+      end
     end
 
     private
 
     attr_accessor :client, :envelope_api, :account_id, :expires_in, :account 
+
+    def list_recipients(envelop_id)
+      check_token
+
+      envelope_api
+        .list_recipients(account_id, envelop_id)
+        .signers
+    end
 
     def list_envelopes
       check_token
