@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'rowan_bot/version'
@@ -40,9 +42,11 @@ Gem::Specification.new do |spec|
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
+  spec.add_dependency 'capybara'
+  spec.add_dependency 'docusign_esign'
   spec.add_dependency 'faraday'
   spec.add_dependency 'restforce', '~> 4.2.2'
-  spec.add_dependency 'docusign_esign'
+  spec.add_dependency 'selenium-webdriver'
   spec.add_dependency 'slack-ruby-client'
 
   spec.add_development_dependency 'bundler', '~> 2.0'
