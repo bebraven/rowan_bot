@@ -32,6 +32,16 @@ module RowanBot
       salesforce_api.sign_participants_waivers_by_email(signed_emails)
     end
 
+    def assign_peer_groups_to_users(emails)
+      logger.info('Started assigning peer groups to users')
+      salesforce_api.assign_peer_groups_to_user_emails(emails)
+    end
+
+    def assign_slack_to_users(emails)
+      logger.info('Started assigning slack to users')
+      slack_api.invite_users_to_slack(emails)
+    end
+
     def assign_peer_groups_to_program(program_id, cohort_size = 10)
       logger.info('Started assigning peer groups for program')
       salesforce_api.assign_peer_groups_to_program(program_id, cohort_size)

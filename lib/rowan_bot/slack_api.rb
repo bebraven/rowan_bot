@@ -8,16 +8,16 @@ module RowanBot
   class SlackAPI
     include Capybara::DSL
 
-    def initialize(token, user, password, url)
+    def initialize
       Capybara.default_driver = :selenium_chrome_headless
       Slack.configure do |config|
-        config.token = token
+        config.token = ENV['SLACK_TOKEN']
       end
 
       @client = Slack::Web::Client.new
-      @slack_user = user
-      @slack_password = password
-      @slack_url = url
+      @slack_user = ENV['SLACK_USER']
+      @slack_password = ENV['SLACK_PASSWORD']
+      @slack_url = ENV['SLACK_URL']
     end
 
     def create_peer_group_channels(names)
@@ -46,6 +46,8 @@ module RowanBot
     end
 
     def invite_users_to_slack(emails)
+      return if emails.empty?
+
       login_to_slack
       emails = emails.join(', ')
       logger.info("Adding users: #{emails}")
