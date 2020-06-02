@@ -1,14 +1,14 @@
+# frozen_string_literal: true
+
 require 'csv'
 require 'rowan_bot'
 
-# There should be a secrets.yaml in the same location as this file
-credentials = YAML.load_file('salesforce_secrets.yaml').transform_keys(&:to_sym)
 tasks = RowanBot::Tasks.new
-tasks.salesforce_api = RowanBot::SalesforceAPI.new()
+tasks.salesforce_api = RowanBot::SalesforceAPI.new
 
 # The id or the program to go through this
-program_id = 'a2Y7A0000002BD1UAM'
-# program_id = ''
+# program_id = 'a2Y7A0000002BD1UAM'
+program_id = ''
 # How big should a cohort be
 cohort_size = 2
 
