@@ -14,6 +14,6 @@ namespace :sync do
     # recently signed
     tasks.assign_slack_to_users(emails)
     tasks.assign_peer_groups_to_users(emails)
-    tasks.assign_to_peer_group_channel_in_slack(emails, ['abdulmajid.hamza@bebraven.org'])
+    tasks.assign_to_peer_group_channel_in_slack(emails, ['abdulmajid.hamza@bebraven.org', 'aleks.calderon@bebraven.org'])
   end
 end
