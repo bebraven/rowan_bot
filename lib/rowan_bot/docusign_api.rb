@@ -18,7 +18,7 @@ module RowanBot
 
     def recently_signed_emails(days)
       envelop_ids = list_envelopes(days)
-                    .filter { |envelop| envelop.status.eql?('signed') }
+                    .filter { |envelop| envelop.status.eql?('completed') }
                     .map(&:envelope_id)
       envelop_ids.inject([]) do |acc, envelop_id|
         acc + list_recipients(envelop_id).map(&:email)
