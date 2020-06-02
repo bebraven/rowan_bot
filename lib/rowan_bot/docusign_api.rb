@@ -15,7 +15,9 @@ module RowanBot
     end
 
     def recently_signed_emails(days)
-      envelop_ids = list_envelopes(days).map(&:envelope_id)
+      envelops = list_envelopes(days)
+      p envelops
+      envelop_ids = []
       envelop_ids.inject([]) do |acc, envelop_id|
         acc + list_recipients(envelop_id).map(&:email)
       end
