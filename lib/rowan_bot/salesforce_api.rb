@@ -43,12 +43,12 @@ module RowanBot
       record_type_id = get_participant_record_type_id('Booster_Student') 
       participant = client.query("select Id, Student_Waiver_Signed__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' limit 1").first
       if participant.nil?
-        logger.warn("#{email} was not found in salesforce")
+        logger.warn("Skipping #{email} - not found in salesforce")
         return
       end
 
       if participant.Student_Waiver_Signed__c
-        logger.info("#{email} has already signed in salesforce")
+        logger.info("SKipping #{email} - already marked as signed in salesforce")
         return 
       end
 
