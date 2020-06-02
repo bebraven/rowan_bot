@@ -21,11 +21,25 @@ module RowanBot
     end
 
     def create_peer_group_channels(names)
-      names.map do |name|
+      channels = client.conversations_list.channels
+      to_create = []
+      existing = names.map do |name|
+        schan = channels.find { |chan| chan.name.eql?(name) }
+        if schan.nil?
+          to_create << name
+          nil
+        else
+          { name: schan.name, id: schan.id }
+        end
+      end.compact
+
+      created = to_create.map do |name|
         channel = client.conversations_create(name: name, is_private: true).channel
         logger.info("Created channel #{name}")
-        { 'name' => channel.name, 'id' => channel.id }
+        { name: channel.name, id: channel.id }
       end
+
+      [existing + created, created]
     end
 
     def add_users_to_peer_group_channel(channel_id, user_ids)
@@ -36,11 +50,11 @@ module RowanBot
     def add_slack_ids_to_users(users)
       slack_users = client.users_list.members
       users.map do |user|
-        slack_user = slack_users.find { |slack_u| slack_u.profile.email.eql?(user['email']) }
-        raise "Slack user #{user['email']} is not in this workspace" if slack_user.nil?
+        slack_user = slack_users.find { |slack_u| slack_u.profile.email.eql?(user[:email]) }
+        raise "Slack user #{user[:email]} is not in this workspace" if slack_user.nil?
 
-        logger.info("Found user #{user['email']}")
-        user['slack_id'] = slack_user.id
+        logger.info("Found user #{user[:email]}")
+        user[:slack_id] = slack_user.id
         user
       end
     end

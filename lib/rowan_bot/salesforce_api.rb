@@ -37,9 +37,18 @@ module RowanBot
       emails.filter { |email| !set_student_waiver_field(email).nil? }
     end
 
+    def map_emails_with_peer_group(emails)
+      emails.map { |email| map_email_with_peer_group(email) }
+    end
+
     private
 
     attr_reader :client
+
+    def map_email_with_peer_group(email)
+      participant = find_participant_by_email(email)
+      { email: email, peer_group: participant.Cohort__r.Name }
+    end
 
     def assign_peer_groups_to_user_email(email, max_cap = 10)
       participant = find_participant_by_email(email)
@@ -68,7 +77,7 @@ module RowanBot
 
     def find_participant_by_email(email)
       record_type_id = get_participant_record_type_id('Booster_Student')
-      client.query("select Id, Student_Waiver_Signed__c, Cohort_Schedule__r.Id, Cohort_Schedule__r.Letter__c, Program__r.Id, Program__r.Session__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' limit 1").first
+      client.query("select Id, Student_Waiver_Signed__c, Cohort__r.Name, Cohort_Schedule__r.Id, Cohort_Schedule__r.Letter__c, Program__r.Id, Program__r.Session__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' ORDER BY Id DESC limit 1").first
     end
 
     def assign_peer_groups_to_cohort(program, cohort, cohort_size)

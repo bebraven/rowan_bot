@@ -9,3 +9,4 @@ tasks.slack_api = RowanBot::SlackAPI.new
 emails = tasks.sync_signed_waivers_to_salesforce(30)
 tasks.assign_slack_to_users(emails)
 tasks.assign_peer_groups_to_users(emails)
+tasks.assign_to_peer_group_channel_in_slack(emails, ['abdulmajid.hamza@bebraven.org'])
