@@ -17,6 +17,7 @@ namespace :sync do
       admin_emails = ENV.fetch('SLACK_ADMIN_EMAILS', '').split(',').map(&:strip)
       tasks.assign_slack_to_users(emails)
       tasks.assign_peer_groups_to_users(emails)
+      sleep(5) # Slack seems to take a sec before it can find the users added above. 
       tasks.assign_to_peer_group_channel_in_slack(emails, admin_emails)
       tasks.send_onboarding_notification(emails)
     end
