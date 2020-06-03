@@ -8,6 +8,16 @@ namespace :sync do
     tasks = RowanBot::Tasks.new
     tasks.docusign_api = RowanBot::DocuSignAPI.new
     tasks.salesforce_api = RowanBot::SalesforceAPI.new
-    tasks.sync_signed_waivers_to_salesforce(days)
+    emails = tasks.sync_signed_waivers_to_salesforce(days)
+
+    # I'll tag these tasks here since they depend on emails of people who
+    # recently signed
+    unless emails.empty?
+      admin_emails = ENV.fetch('SLACK_ADMIN_EMAILS', '').split(',').map(&:strip)
+      tasks.assign_slack_to_users(emails)
+      tasks.assign_peer_groups_to_users(emails)
+      tasks.assign_to_peer_group_channel_in_slack(emails, admin_emails)
+      tasks.send_onboarding_notification(emails)
+    end
   end
 end

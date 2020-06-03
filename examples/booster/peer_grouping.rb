@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 require 'csv'
 require 'rowan_bot'
 
 tasks = RowanBot::Tasks.new
-tasks.salesforce_api = RowanBot::SalesforceAPI.new()
+tasks.salesforce_api = RowanBot::SalesforceAPI.new
 
 # The id or the program to go through this
 # program_id = 'a2Y7A0000002BD1UAM'

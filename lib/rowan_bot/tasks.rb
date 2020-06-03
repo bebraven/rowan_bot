@@ -1,12 +1,15 @@
+# frozen_string_literal: true
+
 module RowanBot
   # Tasks class for tasks to be done
   class Tasks
-    attr_writer :zoom_api, :salesforce_api, :docusign_api
+    attr_writer :zoom_api, :salesforce_api, :docusign_api, :slack_api
     # I do not want to break api
-    def initialize(zoom_api = nil, salesforce_api = nil, docusign_api = nil)
+    def initialize(zoom_api = nil, salesforce_api = nil, docusign_api = nil, slack_api = nil)
       @zoom_api = zoom_api
       @salesforce_api = salesforce_api
       @docusign_api = docusign_api
+      @slack_api = slack_api
     end
 
     def add_participants_to_meetings(meeting_id, participants)
@@ -31,14 +34,65 @@ module RowanBot
       salesforce_api.sign_participants_waivers_by_email(signed_emails)
     end
 
+    def assign_peer_groups_to_users(emails)
+      logger.info('Started assigning peer groups to users')
+      salesforce_api.assign_peer_groups_to_user_emails(emails)
+    end
+
+    def assign_slack_to_users(emails)
+      logger.info('Started assigning slack to users')
+      slack_api.invite_users_to_slack(emails)
+    end
+
+    def send_onboarding_notification(emails)
+      logger.info('Sending notification')
+      slack_api.send_onboarding_notification(emails.join(', '))
+    end
+
+    def assign_to_peer_group_channel_in_slack(emails, admins)
+      logger.info('Started assigning users to channels in slack')
+      admins = admins.map { |ad| { email: ad } }
+      users = salesforce_api
+              .map_emails_with_peer_group(emails)
+              .map { |u| { email: u[:email], peer_group: u[:peer_group].split.last(2).join('-').downcase } }
+      add_users_to_peer_group_channels(users, admins)
+    end
+
     def assign_peer_groups_to_program(program_id, cohort_size = 10)
       logger.info('Started assigning peer groups for program')
       salesforce_api.assign_peer_groups_to_program(program_id, cohort_size)
     end
 
+    def add_users_to_peer_group_channels(users, admins = [])
+      channel_names = users.map { |entry| entry[:peer_group] }.uniq
+      channels, newly = slack_api.create_peer_group_channels(channel_names)
+      admins_ids = slack_api.add_slack_ids_to_users(admins).map { |adms| adms[:slack_id] }
+      transformed_users = slack_api.add_slack_ids_to_users(users)
+      transformed_users = transformed_users.map do |t_user|
+        channel = channels.find { |c| c[:name].eql?(t_user[:peer_group]) }
+        t_user[:channel_id] = channel[:id]
+        t_user
+      end
+      transformed = transformed_users.each_with_object({}) do |user, acc|
+        if acc[user[:channel_id]].nil?
+          acc[user[:channel_id]] = [user[:slack_id]]
+        else
+          acc[user[:channel_id]] << user[:slack_id]
+        end
+      end
+
+      newly.each do |newl|
+        slack_api.add_users_to_peer_group_channel(newl[:id], admins_ids)
+      end
+      # Add users
+      transformed.each do |channel_id, user_ids|
+        slack_api.add_users_to_peer_group_channel(channel_id, user_ids)
+      end
+    end
+
     private
 
-    attr_reader :zoom_api, :salesforce_api, :docusign_api
+    attr_reader :zoom_api, :salesforce_api, :docusign_api, :slack_api
 
     def logger
       RowanBot.logger
