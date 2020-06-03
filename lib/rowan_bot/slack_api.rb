@@ -15,19 +15,18 @@ module RowanBot
 
       # This is for Heroku. See: https://elements.heroku.com/buildpacks/heroku/heroku-buildpack-google-chrome
       if chrome_shim
-        Selenium::WebDriver::Chrome.path = chrome_shim
-
-        chrome_opts = chrome_shim ? { 'chromeOptions' => { 'binary' => chrome_shim, 'remote-debugging-port' => '9222', 'headless' => true } } : {}
-
+        chrome_opts = chrome_shim ? { "chromeOptions" => { "binary" => chrome_shim } } : {}
+        
         Capybara.register_driver :chrome do |app|
           Capybara::Selenium::Driver.new(
-            app,
-            browser: :chrome,
-            desired_capabilities: Selenium::WebDriver::Remote::Capabilities.chrome(chrome_opts)
+             app,
+             browser: :chrome,
+             desired_capabilities: Selenium::WebDriver::Remote::Capabilities.chrome(chrome_opts)
           )
         end
 
         Capybara.default_driver = :chrome
+
       elsif chrome_host # If you're running it in a docker container and have to connect to another container with chome installed.
 
         chrome_opts = ['--headless', '--no-sandbox', '--disable-gpu', '--remote-debugging-port=9222', '--disable-dev-shm-usage', '--disable-extensions', '--disable-features=VizDisplayCompositor', '--enable-features=NetworkService,NetworkServiceInProcess']
@@ -49,6 +48,8 @@ module RowanBot
       else # Assumes your running it on localhost and have Chrome installed on your machine.
         Capybara.default_driver = :selenium_chrome_headless
       end
+
+      Capybara.match = :first
 
       Slack.configure do |config|
         config.token = ENV['SLACK_TOKEN']
