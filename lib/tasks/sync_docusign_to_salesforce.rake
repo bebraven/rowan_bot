@@ -12,9 +12,11 @@ namespace :sync do
 
     # I'll tag these tasks here since they depend on emails of people who
     # recently signed
-    tasks.assign_slack_to_users(emails)
-    tasks.assign_peer_groups_to_users(emails)
-    tasks.assign_to_peer_group_channel_in_slack(emails, ['abdulmajid.hamza@bebraven.org', 'aleks.calderon@bebraven.org'])
-    tasks.send_onboarding_notification(emails)
+    unless emails.empty?
+      tasks.assign_slack_to_users(emails)
+      tasks.assign_peer_groups_to_users(emails)
+      tasks.assign_to_peer_group_channel_in_slack(emails, ['abdulmajid.hamza@bebraven.org', 'aleks.calderon@bebraven.org'])
+      tasks.send_onboarding_notification(emails)
+    end
   end
 end
