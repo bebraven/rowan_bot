@@ -2,6 +2,7 @@
 
 require 'slack-ruby-client'
 require 'capybara/dsl'
+require 'selenium-webdriver'
 
 module RowanBot
   # SlackAPI class for slack stuff
