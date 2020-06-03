@@ -20,6 +20,11 @@ module RowanBot
       @slack_url = ENV['SLACK_URL']
     end
 
+    def send_onboarding_notification(emails)
+      message = "These users just signed their waivers: #{emails}"
+      client.chat_postMessage(channel: '#on-boarding-notifications', text: message)
+    end
+
     def create_peer_group_channels(names)
       channels = client.conversations_list.channels
       to_create = []

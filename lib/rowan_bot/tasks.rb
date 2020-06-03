@@ -44,6 +44,11 @@ module RowanBot
       slack_api.invite_users_to_slack(emails)
     end
 
+    def send_onboarding_notification(emails)
+      logger.info('Sending notification')
+      slack_api.send_onboarding_notification(emails.join(', '))
+    end
+
     def assign_to_peer_group_channel_in_slack(emails, admins)
       logger.info('Started assigning users to channels in slack')
       admins = admins.map { |ad| { email: ad } }
