@@ -54,7 +54,7 @@ module RowanBot
       admins = admins.map { |ad| { email: ad } }
       users = salesforce_api
               .map_emails_with_peer_group(emails)
-              .map { |u| { email: u[:email], peer_group: u[:peer_group].split.last(2).join('-').downcase } }
+              .map { |u| { email: u[:email], peer_group: u[:peer_group].split.last(4).join('-').downcase } }
       add_users_to_peer_group_channels(users, admins)
     end
 
