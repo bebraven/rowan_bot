@@ -26,7 +26,7 @@ module RowanBot
     end
 
     def create_peer_group_channels(names)
-      channels = client.conversations_list.channels
+      channels = client.conversations_list(types: 'public_channel,private_channel').channels
       to_create = []
       existing = names.map do |name|
         schan = channels.find { |chan| chan.name.eql?(name) }
