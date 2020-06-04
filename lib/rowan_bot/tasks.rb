@@ -70,6 +70,11 @@ module RowanBot
       add_users_to_peer_group_channels(users, admins)
     end
 
+    def assign_zoom_links_to_users(emails)
+      logger.info('Started assigning zoom links to users')
+
+    end
+
     def assign_peer_groups_to_program(program_id, cohort_size = 10)
       logger.info('Started assigning peer groups for program')
       salesforce_api.assign_peer_groups_to_program(program_id, cohort_size)

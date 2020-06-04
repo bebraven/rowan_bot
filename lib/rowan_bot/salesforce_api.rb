@@ -1,11 +1,33 @@
 # frozen_string_literal: true
 
+require 'yaml'
 require 'restforce'
 
 module RowanBot
   # SalesforceAPI class
   class SalesforceAPI
+    QUERIES = YAML.load_file(File.join(__dir__, 'salesforce_api_queries.yaml'))
+
+    FIND_PARTICIPANTS_BY_EMAIL_QUERY = "SELECT
+          Id,
+          Student_Waiver_Signed__c,
+          Cohort__r.Name,
+          Cohort_Schedule__r.Id,
+          Cohort_Schedule__r.Letter__c,
+          Program__r.Id,
+          Program__r.Session__c
+        FROM
+          Participant__c
+        WHERE
+          Contact__r.email IN (
+            'hello@me.com'
+          )
+          AND RecordTypeId = 'peope@me.com'
+        ORDER BY
+          Id DESC"
+
     def initialize
+      p QUERIES 
       @client = Restforce.new(
         username: ENV['SALESFORCE_PLATFORM_USERNAME'],
         password: ENV['SALESFORCE_PLATFORM_PASSWORD'],
@@ -30,8 +52,15 @@ module RowanBot
       end
     end
 
+    def find_participants_by_emails(emails)
+      record_type_id = get_participant_record_type_id('Booster_Student')
+      transformed_emails = emails.map { |email| "'#{email}'" }.join(',')
+      client.query(
+              )
+    end
+
     def assign_peer_groups_to_user_emails(emails)
-      emails.each {|email| assign_peer_groups_to_user_email(email) }
+      emails.each { |email| assign_peer_groups_to_user_email(email) }
     end
 
     def sign_participants_waivers_by_email(emails)
@@ -111,10 +140,12 @@ module RowanBot
           true
         else
           participant_count = client.query("select count(Id) from Participant__c where Cohort_Schedule__c = '#{cohort_id}' AND Cohort__c = '#{last_peer_group.Id}'").first
-          current_current = participant_count.expr0.to_i 
-          logger.debug("  participants in Cohort__c '#{last_peer_group.Id}' has hit #{max_cap}") if current_current >= max_cap
+          current_current = participant_count.expr0.to_i
+          if current_current >= max_cap
+            logger.debug("  participants in Cohort__c '#{last_peer_group.Id}' has hit #{max_cap}")
+          end
           current_current >= max_cap
-        end 
+        end
 
       if should_create_peer_group
         group = last_peer_group.nil? ? 1 : last_peer_group.Peer_Group_ID__c.to_i + 1
@@ -169,12 +200,12 @@ module RowanBot
     end
 
     # Gets and caches the Cohort__c record with the highest Peer_Group_ID__c
-    def get_last_peer_group(program_id, cohort_schedule_id, invalidate_cache = false) 
+    def get_last_peer_group(program_id, cohort_schedule_id, invalidate_cache = false)
       pg_hash_key = "#{program_id}_#{cohort_schedule_id}"
       if @last_peer_groups[pg_hash_key].nil? || invalidate_cache
         @last_peer_groups[pg_hash_key] = client.query("select Id, Name, Peer_Group_ID__c from Cohort__c where Cohort_Schedule__c = '#{cohort_schedule_id}' AND Program__c = '#{program_id}' ORDER BY Peer_Group_ID__c DESC LIMIT 1").first
       end
-      @last_peer_groups[pg_hash_key] 
+      @last_peer_groups[pg_hash_key]
     end
 
     def logger
