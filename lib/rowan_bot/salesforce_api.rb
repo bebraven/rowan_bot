@@ -8,15 +8,15 @@ module RowanBot
   class SalesforceAPI
     QUERIES = YAML.load_file(File.join(__dir__, 'salesforce_api_queries.yaml'))
 
-    def initialize
+    def initialize(params = {})
       @client = Restforce.new(
-        username: ENV['SALESFORCE_PLATFORM_USERNAME'],
-        password: ENV['SALESFORCE_PLATFORM_PASSWORD'],
-        host: ENV['SALESFORCE_HOST'],
-        security_token: ENV['SALESFORCE_PLATFORM_SECURITY_TOKEN'],
-        client_id: ENV['SALESFORCE_PLATFORM_CONSUMER_KEY'],
-        client_secret: ENV['SALESFORCE_PLATFORM_CONSUMER_SECRET'],
-        api_version: ENV.fetch('SALESFORCE_API_VERSION') { '48.0' }
+        username: params.fetch(:username, ENV['SALESFORCE_PLATFORM_USERNAME']),
+        password: params.fetch(:password, ENV['SALESFORCE_PLATFORM_PASSWORD']),
+        host: params.fetch(:host, ENV['SALESFORCE_HOST']),
+        security_token: params.fetch(:security_token, ENV['SALESFORCE_PLATFORM_SECURITY_TOKEN']),
+        client_id: params.fetch(:client_id, ENV['SALESFORCE_PLATFORM_CONSUMER_KEY']),
+        client_secret: params.fetch(:client_secret, ENV['SALESFORCE_PLATFORM_CONSUMER_SECRET']),
+        api_version: params.fetch(:api_version, ENV.fetch('SALESFORCE_API_VERSION', '48.0'))
       )
       @participant_record_type_ids = {}
       @last_peer_groups = {}
@@ -31,16 +31,6 @@ module RowanBot
       cohorts.inject([]) do |acc, cohort|
         acc + assign_peer_groups_to_cohort(program, cohort, cohort_size)
       end
-    end
-
-    def find_participants_by_emails(emails)
-      record_type_id = get_participant_record_type_id('Booster_Student')
-      client.query(
-        QUERIES['FIND_PARTICIPANTS_BY_EMAIL_QUERY'].format(
-          email_list: listify(emails),
-          record_type_id: stringify(record_type_id)
-        )
-      )
     end
 
     def assign_peer_groups_to_user_emails(emails)
@@ -106,17 +96,28 @@ module RowanBot
       email
     end
 
-    
-    def assign_peer_groups_to_cohort(program, cohort, cohort_size)
-      logger.info('Getting participants for cohort schedule')
-      participants = client.query("select Id, Name, Contact__r.Email from Participant__c where Cohort_Schedule__c = '#{cohort.Id}'")
-      # There must be at least cohort_size people to get this to create
-      # peer groups
-      peer_group_count = (participants.count / cohort_size.to_f).floor
-      peer_groups = create_peer_groups(program, cohort, peer_group_count)
-      assign_participants_to_peer_groups(participants, peer_groups, peer_group_count)
+    def find_booster_participant_by_email(email)
+      record_type_id = get_participant_record_type_id('Booster_Student')
+      query = format(
+        QUERIES['LAST_PARTCIPANT_BY_EMAIL_AND_RECORD'],
+        email: stringify(email),
+        record_type_id: stringify(record_type_id)
+      )
+
+      client.query(query).first
     end
 
+    def find_booster_participants_by_emails(emails)
+      record_type_id = get_participant_record_type_id('Booster_Student')
+      query = format(
+        QUERIES['PARTICIPANTS_BY_EMAILS_AND_RECORD'],
+        email_list: listify(emails),
+        record_type_id: stringify(record_type_id)
+      )
+
+      client.query(query)
+    end
+    
     def find_or_create_peer_group(program_id, cohort_id, program_letter, cohort_letter, max_cap)
       last_peer_group = get_last_peer_group(program_id, cohort_id)
       should_create_peer_group =
