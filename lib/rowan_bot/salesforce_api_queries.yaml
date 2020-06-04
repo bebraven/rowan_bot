@@ -1,4 +1,19 @@
 # Keeping out the SOQL from the code
-HELLO: >
-  The world is
-  ours to live
+FIND_PARTICIPANTS_BY_EMAIL_QUERY: >
+  SELECT
+    Id,
+    Student_Waiver_Signed__c,
+    Cohort__r.Name,
+    Cohort_Schedule__r.Id,
+    Cohort_Schedule__r.Letter__c,
+    Program__r.Id,
+    Program__r.Session__c
+  FROM
+    Participant__c
+  WHERE
+    Contact__r.email IN (
+      %{email_list}
+    )
+    AND RecordTypeId = %{record_type_id}
+  ORDER BY
+    Id DESC

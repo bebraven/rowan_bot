@@ -34,6 +34,11 @@ module RowanBot
       salesforce_api.sign_participants_waivers_by_email(signed_emails)
     end
 
+    def test(emails)
+      logger.info('Fetching')
+      salesforce_api.find_participants_by_emails(emails)
+    end
+
     def assign_peer_groups_to_users(emails)
       logger.info("Started assigning peer groups to users: #{emails}")
       salesforce_api.assign_peer_groups_to_user_emails(emails)

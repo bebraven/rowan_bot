@@ -8,26 +8,7 @@ module RowanBot
   class SalesforceAPI
     QUERIES = YAML.load_file(File.join(__dir__, 'salesforce_api_queries.yaml'))
 
-    FIND_PARTICIPANTS_BY_EMAIL_QUERY = "SELECT
-          Id,
-          Student_Waiver_Signed__c,
-          Cohort__r.Name,
-          Cohort_Schedule__r.Id,
-          Cohort_Schedule__r.Letter__c,
-          Program__r.Id,
-          Program__r.Session__c
-        FROM
-          Participant__c
-        WHERE
-          Contact__r.email IN (
-            'hello@me.com'
-          )
-          AND RecordTypeId = 'peope@me.com'
-        ORDER BY
-          Id DESC"
-
     def initialize
-      p QUERIES 
       @client = Restforce.new(
         username: ENV['SALESFORCE_PLATFORM_USERNAME'],
         password: ENV['SALESFORCE_PLATFORM_PASSWORD'],
@@ -54,9 +35,12 @@ module RowanBot
 
     def find_participants_by_emails(emails)
       record_type_id = get_participant_record_type_id('Booster_Student')
-      transformed_emails = emails.map { |email| "'#{email}'" }.join(',')
       client.query(
-              )
+        QUERIES['FIND_PARTICIPANTS_BY_EMAIL_QUERY'].format(
+          email_list: listify(emails),
+          record_type_id: stringify(record_type_id)
+        )
+      )
     end
 
     def assign_peer_groups_to_user_emails(emails)
@@ -206,6 +190,14 @@ module RowanBot
         @last_peer_groups[pg_hash_key] = client.query("select Id, Name, Peer_Group_ID__c from Cohort__c where Cohort_Schedule__c = '#{cohort_schedule_id}' AND Program__c = '#{program_id}' ORDER BY Peer_Group_ID__c DESC LIMIT 1").first
       end
       @last_peer_groups[pg_hash_key]
+    end
+
+    def listify(list)
+      list.map { |email| stringify(email) }.join(',')
+    end
+
+    def stringify(object)
+      "'#{object}'"
     end
 
     def logger
