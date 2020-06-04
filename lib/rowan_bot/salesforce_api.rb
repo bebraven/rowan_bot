@@ -16,7 +16,6 @@ module RowanBot
         api_version: ENV.fetch('SALESFORCE_API_VERSION') { '48.0' }
       )
       @participant_record_type_ids = {}
-      @participants = {}
       @last_peer_groups = {}
     end
 
@@ -80,11 +79,8 @@ module RowanBot
     end
 
     def find_participant_by_email(email)
-      unless @participants[email]
-        record_type_id = get_participant_record_type_id('Booster_Student')
-        @participants[email] = client.query("select Id, Student_Waiver_Signed__c, Cohort__r.Name, Cohort_Schedule__r.Id, Cohort_Schedule__r.Letter__c, Program__r.Id, Program__r.Session__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' ORDER BY Id DESC limit 1").first
-      end
-      @participants[email]
+      record_type_id = get_participant_record_type_id('Booster_Student')
+      client.query("select Id, Student_Waiver_Signed__c, Cohort__r.Name, Cohort_Schedule__r.Id, Cohort_Schedule__r.Letter__c, Program__r.Id, Program__r.Session__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' ORDER BY Id DESC limit 1").first
     end
 
     def assign_peer_groups_to_cohort(program, cohort, cohort_size)
