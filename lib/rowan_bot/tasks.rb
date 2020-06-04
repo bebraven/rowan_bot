@@ -35,12 +35,12 @@ module RowanBot
     end
 
     def assign_peer_groups_to_users(emails)
-      logger.info('Started assigning peer groups to users')
+      logger.info("Started assigning peer groups to users: #{emails}")
       salesforce_api.assign_peer_groups_to_user_emails(emails)
     end
 
     def assign_slack_to_users(emails)
-      logger.info('Started assigning slack to users')
+      logger.info("Started assigning slack to users: #{emails}")
       slack_api.invite_users_to_slack(emails)
     end
 

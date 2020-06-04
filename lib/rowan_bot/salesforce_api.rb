@@ -162,9 +162,9 @@ module RowanBot
     end
 
     # Gets and caches the Cohort__c record with the highest Peer_Group_ID__c
-    def get_last_peer_group(program_id, cohort_schedule_id, invalidate_cache? = false) 
+    def get_last_peer_group(program_id, cohort_schedule_id, invalidate_cache = false) 
       pg_hash_key = "#{program_id}_#{cohort_schedule_id}"
-      if @last_peer_groups[pg_hash_key].nil? || invalidate_cache?
+      if @last_peer_groups[pg_hash_key].nil? || invalidate_cache
         @last_peer_groups[pg_hash_key] = client.query("select Id, Name, Peer_Group_ID__c from Cohort__c where Cohort_Schedule__c = '#{cohort_schedule_id}' AND Program__c = '#{program_id}' ORDER BY Peer_Group_ID__c DESC LIMIT 1").first
       end
       @last_peer_groups[pg_hash_key] 
