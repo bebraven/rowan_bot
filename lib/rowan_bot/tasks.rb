@@ -44,6 +44,18 @@ module RowanBot
       slack_api.invite_users_to_slack(emails)
     end
 
+    def assign_zoom_links_to_users(emails)
+      logger.info("Started assigning zoom links to users: #{emails}")
+      emails.each do |email|
+        participant = salesforce_api.find_participant_by_email(email)
+        registration_details = { 'email' => participant.Contact__r.Email, 'first_name' => participant.Contact__r.Preferred_First_Name__c, 'last_name' => participant.Contact__r.Name }
+        join_url_1 = zoom_api.add_registrant(participant.Cohort_Schedule__r.Webinar_Registration_1__c, registration_details)['join_url']
+        join_url_2 = zoom_api.add_registrant(participant.Cohort_Schedule__r.Webinar_Registration_2__c, registration_details)['join_url']
+        salesforce_api.update_participant_webinar_links(participant.Id, join_url_1, join_url_2)
+        logger.info("Added zoom link to: #{email}")
+      end
+    end
+
     def send_onboarding_notification(emails)
       logger.info('Sending notification')
       slack_api.send_onboarding_notification(emails.join(', '))
