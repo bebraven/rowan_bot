@@ -42,6 +42,21 @@ module RowanBot
       emails.map { |email| map_email_with_peer_group(email) }
     end
 
+    def update_participant_webinar_links(participant_id, first_link, second_link)
+      client.update(
+        'Participant__c',
+        Id: participant_id,
+        Webinar_Access_1__c: first_link,
+        Webinar_Access_2__c: second_link
+      )
+    end
+
+    def find_participant_by_email(email)
+      record_type_id = get_participant_record_type_id('Booster_Student')
+      client.query("select Id, Contact__r.Email, Contact__r.Name, Contact__r.Preferred_First_Name__c, Student_Waiver_Signed__c, Cohort__r.Name, Cohort_Schedule__r.Id, Cohort_Schedule__r.Webinar_Registration_1__c, Cohort_Schedule__r.Webinar_Registration_2__c,  Cohort_Schedule__r.Letter__c, Program__r.Id, Program__r.Session__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' ORDER BY Id DESC limit 1").first
+    end
+
+
     private
 
     attr_reader :client
@@ -78,11 +93,7 @@ module RowanBot
       email
     end
 
-    def find_participant_by_email(email)
-      record_type_id = get_participant_record_type_id('Booster_Student')
-      client.query("select Id, Student_Waiver_Signed__c, Cohort__r.Name, Cohort_Schedule__r.Id, Cohort_Schedule__r.Letter__c, Program__r.Id, Program__r.Session__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' ORDER BY Id DESC limit 1").first
-    end
-
+    
     def assign_peer_groups_to_cohort(program, cohort, cohort_size)
       logger.info('Getting participants for cohort schedule')
       participants = client.query("select Id, Name, Contact__r.Email from Participant__c where Cohort_Schedule__c = '#{cohort.Id}'")
