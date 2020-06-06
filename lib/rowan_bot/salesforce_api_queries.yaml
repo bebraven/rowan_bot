@@ -7,16 +7,16 @@ PARTICIPANTS_BY_EMAILS_AND_RECORD: >
     Cohort_Schedule__r.Id,
     Cohort_Schedule__r.Letter__c,
     Program__r.Id,
-    Program__r.Session__c
+    Program__r.Session__c,
+    Contact__r.Email
   FROM
     Participant__c
   WHERE
-    Contact__r.email IN (
+    Contact__r.Email IN (
       %{email_list}
     )
     AND RecordTypeId = %{record_type_id}
-  ORDER BY
-    Id DESC
+    AND Status__c = 'Enrolled'
 
 LAST_PARTICIPANT_BY_EMAIL_AND_RECORD: >
   SELECT
@@ -26,12 +26,46 @@ LAST_PARTICIPANT_BY_EMAIL_AND_RECORD: >
     Cohort_Schedule__r.Id,
     Cohort_Schedule__r.Letter__c,
     Program__r.Id,
-    Program__r.Session__c
+    Program__r.Session__c,
+    Contact__r.Email
   FROM
     Participant__c
   WHERE
-    Contact__r.email = %{email}
+    Contact__r.Email = %{email}
     AND RecordTypeId = %{record_type_id}
   ORDER BY 
     Id DESC
+  LIMIT 1
+
+FIRST_RECORD_TYPE: >
+  SELECT 
+    Id
+  FROM
+    RecordType
+  WHERE 
+    sObjectType = %{s_object_type}
+    AND DeveloperName = %{developer_name}
+  LIMIT 1
+
+PARTICIPANT_COUNT_BY_COHORT_AND_SCHEDULE: >
+  SELECT
+    COUNT(Id)
+  FROM
+    Participant__c
+  WHERE
+    Cohort_Schedule__c = %{cohort_schedule_id}
+    AND Cohort__c = %{cohort_id}
+
+LAST_COHORT_BY_SCHEDULE_AND_PROGRAM: >
+  SELECT
+    Id,
+    Name,
+    Peer_Group_ID__c
+  FROM
+    Cohort__c
+  WHERE
+    Cohort_Schedule__c = %{cohort_schedule_id}
+    AND Program__c = %{program_id}
+  ORDER BY
+    Peer_Group_ID__c DESC
   LIMIT 1
