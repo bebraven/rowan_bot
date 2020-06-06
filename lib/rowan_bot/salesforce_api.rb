@@ -5,8 +5,9 @@ require 'restforce'
 
 module RowanBot
   # SalesforceAPI class
-  SFParticipant = Struct.new(:id, :email, :signed_waiver, :peer_group, :cohort_id,
-                             :cohort_letter, :program_id, :program_letter)
+  SFParticipant = Struct.new(:id, :email, :first_name, :last_name, :signed_waiver, :peer_group, :cohort_id,
+                             :cohort_letter, :program_id, :program_letter, :webinar_registration_1,
+                             :webinar_registration_2)
   SFPeerGroup = Struct.new(:id, :name, :index)
 
   class SalesforceAPI
@@ -54,6 +55,7 @@ module RowanBot
     end
 
     def update_participant_webinar_links(participant_id, first_link, second_link)
+      logger.info('SALESFORCE: Making API Call')
       client.update(
         'Participant__c',
         Id: participant_id,
@@ -63,10 +65,8 @@ module RowanBot
     end
 
     def find_participant_by_email(email)
-      record_type_id = get_participant_record_type_id('Booster_Student')
-      client.query("select Id, Contact__r.Email, Contact__r.Name, Contact__r.Preferred_First_Name__c, Student_Waiver_Signed__c, Cohort__r.Name, Cohort_Schedule__r.Id, Cohort_Schedule__r.Webinar_Registration_1__c, Cohort_Schedule__r.Webinar_Registration_2__c,  Cohort_Schedule__r.Letter__c, Program__r.Id, Program__r.Session__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' ORDER BY Id DESC limit 1").first
+      fetch_booster_participant_by_email(email)
     end
-
 
     private
 
@@ -218,10 +218,14 @@ module RowanBot
     end
 
     def transform_participant(response)
-      SFParticipant.new(response.Id, response.Contact__r&.Email, response.Student_Waiver_Signed__c,
+      SFParticipant.new(response.Id, response.Contact__r&.Email,
+                        response.Contact__r&.Preferred_First_Name__c,
+                        response.Contact__r&.Name, response.Student_Waiver_Signed__c,
                         response.Cohort__r&.Name, response.Cohort_Schedule__r&.Id,
                         response.Cohort_Schedule__r&.Letter__c, response.Program__r&.Id,
-                        response.Program__r&.Session__c)
+                        response.Program__r&.Session__c,
+                        response.Cohort_Schedule__r&.Webinar_Registration_1__c,
+                        response.Cohort_Schedule__r&.Webinar_Registration_2__c)
     end
 
     def listify(list)
