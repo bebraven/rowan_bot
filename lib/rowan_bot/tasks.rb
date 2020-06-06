@@ -71,9 +71,9 @@ module RowanBot
     def assign_to_peer_group_channel_in_slack(emails, admins)
       logger.info('Started assigning users to channels in slack')
       admins = admins.map { |ad| { email: ad } }
-      users = salesforce_api
-              .map_emails_with_peer_group(emails)
-              .map { |u| { email: u[:email], peer_group: u[:peer_group].split.last(4).join('-').downcase } }
+      users = emails
+              .map { |email| salesforce_api.find_participant_by_email(email) }
+              .map { |p| { email: p.email, peer_group: p.peer_group.split.last(4).join('-').downcase } }
       add_users_to_peer_group_channels(users, admins)
     end
 
