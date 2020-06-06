@@ -27,8 +27,7 @@ module RowanBot
 
     def sync_signed_waivers_to_salesforce(days = 1)
       logger.info('Started syncing waiver details to salesforce')
-      # signed_emails = docusign_api.recently_signed_emails(days)
-      signed_emails = ['harry.li+xtest@bebraven.org', 'jamila.martinez@lc.cuny.edu']
+      signed_emails = docusign_api.recently_signed_emails(days)
       salesforce_api.sign_participants_waivers_by_email(signed_emails)
     end
 
