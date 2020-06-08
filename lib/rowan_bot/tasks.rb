@@ -45,6 +45,10 @@ module RowanBot
       logger.info("Started assigning zoom links to users: #{emails}")
       emails.each do |email|
         participant = salesforce_api.find_participant_by_email(email)
+        if participant.webinar_registration_1.nil? || participant.webinar_registration_2.nil?
+          logger.warn("Skipping: #{email} doesn't have registration_details")
+          next
+        end
         registration_details = {
           'email' => participant.email,
           'first_name' => participant.first_name,
