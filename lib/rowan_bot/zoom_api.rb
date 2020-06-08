@@ -1,10 +1,12 @@
+# frozen_string_literal: true
+
 require 'faraday'
 require 'json'
 
 module RowanBot
   # ZoomAPI class to wrap around the zoom API
   class ZoomAPI
-    BASE_URL = 'https://api.zoom.us/v2'.freeze
+    BASE_URL = 'https://api.zoom.us/v2'
 
     def initialize
       @token = ENV['ZOOM_TOKEN']
@@ -24,6 +26,21 @@ module RowanBot
       post(url, data)
     end
 
+    def update_meeting_for_registration(meeting_id)
+      logger.info("Updating meeting for registration: #{meeting_id}")
+      url = "#{BASE_URL}/meetings/#{meeting_id}"
+      data = {
+        'settings' => {
+          'approval_type' => 0,
+          'registration_type' => 2,
+          'registrants_email_notification' => false,
+          'registrants_confirmation_email' => false
+        }
+      }
+
+      patch(url, data)
+    end
+
     private
 
     attr_reader :token
@@ -40,8 +57,14 @@ module RowanBot
       extract_response(response)
     end
 
+    def patch(url, data)
+      response = Faraday.patch(url, data.to_json, shared_headers)
+
+      extract_response(response)
+    end
+
     def extract_response(response)
-      unless [201, 200].include?(response.status)
+      unless [201, 200, 204].include?(response.status)
         logger.warn('Request to zoom was not successful')
         logger.error(response.body)
         raise "Something went wrong communicating with zoom: #{response.body}"
