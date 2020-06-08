@@ -51,6 +51,7 @@ module RowanBot
     end
 
     def find_booster_participants_by_emails(emails)
+      fetch_booster_participants_by_emails(emails)
       emails.map { |email| fetch_booster_participant_by_email(email) }
     end
 
