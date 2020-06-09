@@ -16,10 +16,7 @@ module RowanBot
       logger.info('Started adding participants')
       participants.map do |participant|
         response = zoom_api.add_registrant(meeting_id, participant)
-        join_url = response['join_url']
-        participant['join_url'] = join_url
-
-        participant
+        { **participant, 'join_url' => response['join_url'] }
       end
     end
 
@@ -48,10 +45,24 @@ module RowanBot
       logger.info("Started assigning zoom links to users: #{emails}")
       emails.each do |email|
         participant = salesforce_api.find_participant_by_email(email)
-        registration_details = { 'email' => participant.Contact__r.Email, 'first_name' => participant.Contact__r.Preferred_First_Name__c, 'last_name' => participant.Contact__r.Name }
-        join_url_1 = zoom_api.add_registrant(participant.Cohort_Schedule__r.Webinar_Registration_1__c, registration_details)['join_url']
-        join_url_2 = zoom_api.add_registrant(participant.Cohort_Schedule__r.Webinar_Registration_2__c, registration_details)['join_url']
-        salesforce_api.update_participant_webinar_links(participant.Id, join_url_1, join_url_2)
+        if participant.webinar_registration_1.nil? || participant.webinar_registration_2.nil?
+          logger.warn("Skipping: #{email} doesn't have registration_details")
+          next
+        end
+        registration_details = {
+          'email' => participant.email,
+          'first_name' => participant.first_name,
+          'last_name' => participant.last_name
+        }
+        join_url1 = zoom_api.add_registrant(
+          participant.webinar_registration_1,
+          registration_details
+        )['join_url']
+        join_url2 = zoom_api.add_registrant(
+          participant.webinar_registration_2,
+          registration_details
+        )['join_url']
+        salesforce_api.update_participant_webinar_links(participant.id, join_url1, join_url2)
         logger.info("Added zoom link to: #{email}")
       end
     end
@@ -64,15 +75,10 @@ module RowanBot
     def assign_to_peer_group_channel_in_slack(emails, admins)
       logger.info('Started assigning users to channels in slack')
       admins = admins.map { |ad| { email: ad } }
-      users = salesforce_api
-              .map_emails_with_peer_group(emails)
-              .map { |u| { email: u[:email], peer_group: u[:peer_group].split.last(4).join('-').downcase } }
+      users = emails
+              .map { |email| salesforce_api.find_participant_by_email(email) }
+              .map { |p| { email: p.email, peer_group: p.peer_group.split.last(4).join('-').downcase } }
       add_users_to_peer_group_channels(users, admins)
-    end
-
-    def assign_peer_groups_to_program(program_id, cohort_size = 10)
-      logger.info('Started assigning peer groups for program')
-      salesforce_api.assign_peer_groups_to_program(program_id, cohort_size)
     end
 
     def add_users_to_peer_group_channels(users, admins = [])

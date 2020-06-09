@@ -1,48 +1,62 @@
 # frozen_string_literal: true
 
+require 'yaml'
 require 'restforce'
 
 module RowanBot
   # SalesforceAPI class
+  SFParticipant = Struct.new(:id, :email, :first_name, :last_name, :signed_waiver, :peer_group, :cohort_id,
+                             :cohort_letter, :program_id, :program_letter, :webinar_registration_1,
+                             :webinar_registration_2)
+  SFPeerGroup = Struct.new(:id, :name, :index)
+
   class SalesforceAPI
-    def initialize
+    # constants
+    QUERIES = YAML.load_file(File.join(__dir__, 'salesforce_api_queries.yaml'))
+
+    def initialize(params = {})
       @client = Restforce.new(
-        username: ENV['SALESFORCE_PLATFORM_USERNAME'],
-        password: ENV['SALESFORCE_PLATFORM_PASSWORD'],
-        host: ENV['SALESFORCE_HOST'],
-        security_token: ENV['SALESFORCE_PLATFORM_SECURITY_TOKEN'],
-        client_id: ENV['SALESFORCE_PLATFORM_CONSUMER_KEY'],
-        client_secret: ENV['SALESFORCE_PLATFORM_CONSUMER_SECRET'],
-        api_version: ENV.fetch('SALESFORCE_API_VERSION') { '48.0' }
+        username: params.fetch(:username, ENV['SALESFORCE_PLATFORM_USERNAME']),
+        password: params.fetch(:password, ENV['SALESFORCE_PLATFORM_PASSWORD']),
+        host: params.fetch(:host, ENV['SALESFORCE_HOST']),
+        security_token: params.fetch(:security_token, ENV['SALESFORCE_PLATFORM_SECURITY_TOKEN']),
+        client_id: params.fetch(:client_id, ENV['SALESFORCE_PLATFORM_CONSUMER_KEY']),
+        client_secret: params.fetch(:client_secret, ENV['SALESFORCE_PLATFORM_CONSUMER_SECRET']),
+        api_version: params.fetch(:api_version, ENV.fetch('SALESFORCE_API_VERSION', '48.0'))
       )
       @participant_record_type_ids = {}
       @last_peer_groups = {}
-    end
-
-    def assign_peer_groups_to_program(program_id, cohort_size)
-      program = client.find('Program__c', program_id)
-      logger.info("Found program #{program.Name}")
-      cohorts = client.query(
-        "select Id, Letter__c from CohortSchedule__c where Program__c = '#{program.Id}'"
-      )
-      cohorts.inject([]) do |acc, cohort|
-        acc + assign_peer_groups_to_cohort(program, cohort, cohort_size)
-      end
+      @participants = {}
     end
 
     def assign_peer_groups_to_user_emails(emails)
-      emails.each {|email| assign_peer_groups_to_user_email(email) }
+      emails.each do |email|
+        participant = fetch_booster_participant_by_email(email)
+        assign_peer_groups_to_participant(participant)
+      end
     end
 
     def sign_participants_waivers_by_email(emails)
-      emails.filter { |email| !set_student_waiver_field(email).nil? }
+      # This will make the initial query and make it that's the only query made
+      fetch_booster_participants_by_emails(emails)
+      emails.filter do |email|
+        participant = fetch_booster_participant_by_email(email)
+        if participant.nil?
+          logger.warn("Participant #{email} is not found in Salesforce")
+          false
+        else
+          set_participant_waiver_field(participant)
+        end
+      end
     end
 
-    def map_emails_with_peer_group(emails)
-      emails.map { |email| map_email_with_peer_group(email) }
+    def find_booster_participants_by_emails(emails)
+      fetch_booster_participants_by_emails(emails)
+      emails.map { |email| fetch_booster_participant_by_email(email) }
     end
 
     def update_participant_webinar_links(participant_id, first_link, second_link)
+      logger.info('SALESFORCE: Making API Call')
       client.update(
         'Participant__c',
         Id: participant_id,
@@ -52,129 +66,175 @@ module RowanBot
     end
 
     def find_participant_by_email(email)
-      record_type_id = get_participant_record_type_id('Booster_Student')
-      client.query("select Id, Contact__r.Email, Contact__r.Name, Contact__r.Preferred_First_Name__c, Student_Waiver_Signed__c, Cohort__r.Name, Cohort_Schedule__r.Id, Cohort_Schedule__r.Webinar_Registration_1__c, Cohort_Schedule__r.Webinar_Registration_2__c,  Cohort_Schedule__r.Letter__c, Program__r.Id, Program__r.Session__c from Participant__c where Contact__r.email = '#{email}' AND RecordTypeId = '#{record_type_id}' ORDER BY Id DESC limit 1").first
+      fetch_booster_participant_by_email(email)
     end
-
 
     private
 
-    attr_reader :client
+    attr_reader :client, :participant_record_type_ids, :participants, :last_peer_groups
 
-    def map_email_with_peer_group(email)
-      participant = find_participant_by_email(email)
-      pg = participant.Cohort__r.Name
-      logger.debug("  mapping #{email} to peer_group #{pg}")
-      { email: email, peer_group: pg }
-    end
-
-    def assign_peer_groups_to_user_email(email, max_cap = 10)
-      participant = find_participant_by_email(email)
-      peer_group_id = find_or_create_peer_group(participant.Program__r.Id, participant.Cohort_Schedule__r.Id, participant.Program__r.Session__c, participant.Cohort_Schedule__r.Letter__c, max_cap)
-      client.update('Participant__c', Id: participant.Id, Cohort__c: peer_group_id)
+    def assign_peer_groups_to_participant(participant, max_cap = 10)
+      peer_group = find_or_create_peer_group(participant, max_cap)
+      logger.info('SALESFORCE: Making API Call')
+      client.update!('Participant__c', Id: participant.id, Cohort__c: peer_group.id)
+      participant.peer_group = peer_group.name
+      participants[participant.email] = participant
     end
 
     # Only implemented for Booster students at the moment.
     # If we start doing this for folks who could have multiple Participant objects, we'll
     # have to update this to account for that.
-    def set_student_waiver_field(email, value = true)
-      logger.info("Setting waiver for #{email} to #{value}")
-      participant = find_participant_by_email(email)
-      if participant.nil?
-        logger.warn("Skipping #{email} - not found in salesforce")
-        return
+    def set_participant_waiver_field(participant, value = true)
+      logger.info("Attempting to set waiver for #{participant.email} to #{value}")
+      if participant.signed_waiver
+        logger.info("Skipping #{participant.email} - already marked as signed in salesforce")
+        return false
       end
-      if participant.Student_Waiver_Signed__c
-        logger.info("SKipping #{email} - already marked as signed in salesforce")
-        return
-      end
+      logger.info('SALESFORCE: Making API Call')
+      client.update!('Participant__c', Id: participant.id, Student_Waiver_Signed__c: value)
+      # Updates our cache
+      participant.signed_waiver = value
+      participants[participant.email] = participant
 
-      client.update('Participant__c', Id: participant.Id, Student_Waiver_Signed__c: value)
-      email
+      true
     end
 
-    
-    def assign_peer_groups_to_cohort(program, cohort, cohort_size)
-      logger.info('Getting participants for cohort schedule')
-      participants = client.query("select Id, Name, Contact__r.Email from Participant__c where Cohort_Schedule__c = '#{cohort.Id}'")
-      # There must be at least cohort_size people to get this to create
-      # peer groups
-      peer_group_count = (participants.count / cohort_size.to_f).floor
-      peer_groups = create_peer_groups(program, cohort, peer_group_count)
-      assign_participants_to_peer_groups(participants, peer_groups, peer_group_count)
-    end
+    def find_or_create_peer_group(participant, max_cap)
+      last_peer_group = fetch_last_peer_group(participant.program_id, participant.cohort_id)
 
-    def find_or_create_peer_group(program_id, cohort_id, program_letter, cohort_letter, max_cap)
-      last_peer_group = get_last_peer_group(program_id, cohort_id)
-      should_create_peer_group =
-        if last_peer_group.nil?
-          true
-        else
-          participant_count = client.query("select count(Id) from Participant__c where Cohort_Schedule__c = '#{cohort_id}' AND Cohort__c = '#{last_peer_group.Id}'").first
-          current_current = participant_count.expr0.to_i 
-          logger.debug("  participants in Cohort__c '#{last_peer_group.Id}' has hit #{max_cap}") if current_current >= max_cap
-          current_current >= max_cap
-        end 
-
-      if should_create_peer_group
-        group = last_peer_group.nil? ? 1 : last_peer_group.Peer_Group_ID__c.to_i + 1
+      if should_create_peer_group?(participant, last_peer_group, max_cap)
+        group = last_peer_group.nil? ? 1 : last_peer_group.index.to_i + 1
         name = "Booster Session #{program_letter} Cohort #{cohort_letter} Group #{group}"
-        logger.debug("  creating new peer group '#{name}' for Program__c '#{program_id}' and Cohort_Schedule__c '#{cohort_id}'")
-        client.create!(
+        logger.debug("Creating new peer group '#{name}' for Program__c '#{participant.program_id}'
+                     and Cohort_Schedule__c '#{participant.cohort_id}'")
+        logger.info('SALESFORCE: Making API Call')
+        peer_group_id = client.create!(
           'Cohort__c',
           'Name': name,
-          'Program__c': program_id,
-          'Cohort_Schedule__c': cohort_id,
+          'Program__c': participant.program_id,
+          'Cohort_Schedule__c': participant.cohort_id,
           'Peer_Group_ID__c': group
         )
-        last_peer_group = get_last_peer_group(program_id, cohort_id, true)
+        last_peer_group = SFPeerGroup.new(peer_group_id, name, group)
+        last_peer_groups["#{participant.program_id}_#{participant.cohort_schedule_id}"] = last_peer_group
       end
-      last_peer_group.Id
+      last_peer_group
     end
 
-    def create_peer_groups(program, cohort, count)
-      1.upto(count) do |group|
-        name = "Booster Session #{program.Session__c} Cohort #{cohort.Letter__c} Group #{group}"
-        client.upsert(
-          'Cohort__c',
-          'Name',
-          'Name': name,
-          'Program__c': program.Id,
-          'Cohort_Schedule__c': cohort.Id,
-          'Peer_Group_ID__c': group
+    def should_create_peer_group?(participant, last_peer_group, max_cap)
+      return true if last_peer_group.nil?
+
+      logger.info('SALESFORCE: Making API Call')
+      participant_count = client.query(
+        format(
+          QUERIES['PARTICIPANT_COUNT_BY_COHORT_AND_SCHEDULE'], {
+            cohort_schedule_id: stringify(participant.cohort_id),
+            cohort_id: stringify(last_peer_group.id)
+          }
         )
-        logger.info("Upsert peer group: #{name}")
+      ).first&.expr0&.to_i
+      if participant_count >= max_cap
+        logger.debug("participants in Cohort__c '#{last_peer_group.id}' has hit #{max_cap}")
       end
-      client.query("select Id, Name from Cohort__c where Cohort_Schedule__c = '#{cohort.Id}'")
+      participant_count >= max_cap
     end
 
-    def assign_participants_to_peer_groups(participants, peer_groups, cohort_quantity)
-      participants.each_with_index.map do |participant, idx|
-        peer_group = peer_groups.to_a[idx % cohort_quantity]
-        client.update('Participant__c', Id: participant.Id, Cohort__c: peer_group.Id)
-        logger.debug("  #{participant.Contact__r.Email} assigned to #{peer_group.Name}")
-        { salesforce_id: participant.Id, name: participant.Name, email: participant.Contact__r.Email, peer_group: peer_group.Name }
+    def fetch_last_peer_group(program_id, cohort_schedule_id)
+      last_peer_groups["#{program_id}_#{cohort_schedule_id}"] ||= query_last_peer_group(
+        program_id,
+        cohort_schedule_id
+      )
+    end
+
+    def query_last_peer_group(program_id, cohort_schedule_id)
+      logger.info('SALESFORCE: Making API Call')
+      response = client.query(
+        format(
+          QUERIES['LAST_COHORT_BY_SCHEDULE_AND_PROGRAM'], {
+            cohort_schedule_id: stringify(cohort_schedule_id),
+            program_id: stringify(program_id)
+          }
+        )
+      ).first
+      return response if response.nil?
+
+      SFPeerGroup.new(response.Id, response.Name, response.Peer_Group_ID__c)
+    end
+
+    # This will be even more optimization if I figure out the multiple
+    # participant for contact possibility and resolution
+    def fetch_booster_participants_by_emails(emails)
+      record_type_id = fetch_participant_record_type_by_id('Booster_Student')
+      logger.info('SALESFORCE: Making API Call')
+      response = client.query(
+        format(
+          QUERIES['PARTICIPANTS_BY_EMAILS_AND_RECORD'],
+          email_list: listify(emails),
+          record_type_id: stringify(record_type_id)
+        )
+      )
+      response.map do |res|
+        participant = transform_participant(res)
+        participants[participant.email] = participant
       end
+    end
+
+    def fetch_booster_participant_by_email(email)
+      participants[email] ||= query_booster_participant_by_email(email)
+    end
+
+    def query_booster_participant_by_email(email)
+      record_type_id = fetch_participant_record_type_by_id('Booster_Student')
+      logger.info('SALESFORCE: Making API Call')
+      response = client.query(
+        format(
+          QUERIES['LAST_PARTICIPANT_BY_EMAIL_AND_RECORD'],
+          email: stringify(email),
+          record_type_id: stringify(record_type_id)
+        )
+      ).first
+      return response if response.nil?
+
+      transform_participant(response)
     end
 
     # Gets and caches the RecordTypeId for a Participant__c object given the "developername".
     # An example developername is "Booster_Student"
-    def get_participant_record_type_id(developername)
-      unless @participant_record_type_ids[developername]
-        rti = client.query("select id from RecordType where sObjectType='Participant__c' AND developername = '#{developername}' limit 1").first
-        logger.debug("Found RecordTypeId for Participant__c with #{developername}: #{rti}")
-        @participant_record_type_ids[developername] = rti.Id
-      end
-      @participant_record_type_ids[developername]
+    def fetch_participant_record_type_by_id(developer_name)
+      logger.info("Fetching record type for #{developer_name}")
+      participant_record_type_ids[developer_name] ||= query_participant_record_type_by_id(developer_name)
     end
 
-    # Gets and caches the Cohort__c record with the highest Peer_Group_ID__c
-    def get_last_peer_group(program_id, cohort_schedule_id, invalidate_cache = false) 
-      pg_hash_key = "#{program_id}_#{cohort_schedule_id}"
-      if @last_peer_groups[pg_hash_key].nil? || invalidate_cache
-        @last_peer_groups[pg_hash_key] = client.query("select Id, Name, Peer_Group_ID__c from Cohort__c where Cohort_Schedule__c = '#{cohort_schedule_id}' AND Program__c = '#{program_id}' ORDER BY Peer_Group_ID__c DESC LIMIT 1").first
-      end
-      @last_peer_groups[pg_hash_key] 
+    def query_participant_record_type_by_id(developer_name)
+      logger.info('SALESFORCE: Making API Call')
+      client.query(
+        format(
+          QUERIES['FIRST_RECORD_TYPE'],
+          {
+            s_object_type: stringify('Participant__c'),
+            developer_name: stringify(developer_name)
+          }
+        )
+      ).first&.Id
+    end
+
+    def transform_participant(response)
+      SFParticipant.new(response.Id, response.Contact__r&.Email,
+                        response.Contact__r&.Preferred_First_Name__c,
+                        response.Contact__r&.Name, response.Student_Waiver_Signed__c,
+                        response.Cohort__r&.Name, response.Cohort_Schedule__r&.Id,
+                        response.Cohort_Schedule__r&.Letter__c, response.Program__r&.Id,
+                        response.Program__r&.Session__c,
+                        response.Cohort_Schedule__r&.Webinar_Registration_1__c,
+                        response.Cohort_Schedule__r&.Webinar_Registration_2__c)
+    end
+
+    def listify(list)
+      list.map { |email| stringify(email) }.join(',')
+    end
+
+    def stringify(object)
+      "'#{object}'"
     end
 
     def logger
