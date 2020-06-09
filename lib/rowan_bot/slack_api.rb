@@ -46,7 +46,7 @@ module RowanBot
         Capybara.default_driver = :selenium
 
       else # Assumes your running it on localhost and have Chrome installed on your machine.
-        Capybara.default_driver = :selenium_chrome_headless
+        Capybara.default_driver = :selenium_chrome
       end
 
       Capybara.match = :first
