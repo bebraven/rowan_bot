@@ -116,7 +116,7 @@ module RowanBot
           'Peer_Group_ID__c': group
         )
         last_peer_group = SFPeerGroup.new(peer_group_id, name, group)
-        last_peer_groups["#{participant.program_id}_#{participant.cohort_schedule_id}"] = last_peer_group
+        last_peer_groups["#{participant.program_id}_#{participant.cohort_id}"] = last_peer_group
       end
       last_peer_group
     end
