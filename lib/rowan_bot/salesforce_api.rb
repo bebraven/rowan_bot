@@ -104,7 +104,7 @@ module RowanBot
 
       if should_create_peer_group?(participant, last_peer_group, max_cap)
         group = last_peer_group.nil? ? 1 : last_peer_group.index.to_i + 1
-        name = "Booster Session #{program_letter} Cohort #{cohort_letter} Group #{group}"
+        name = "Booster Session #{participant.program_letter} Cohort #{participant.cohort_letter} Group #{group}"
         logger.debug("Creating new peer group '#{name}' for Program__c '#{participant.program_id}'
                      and Cohort_Schedule__c '#{participant.cohort_id}'")
         logger.info('SALESFORCE: Making API Call')
