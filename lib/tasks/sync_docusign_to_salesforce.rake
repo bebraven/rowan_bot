@@ -21,6 +21,7 @@ namespace :sync do
       sleep(10) # Slack seems to take a sec before it can find the users added above
       tasks.slack_api = RowanBot::SlackAPI.new
       tasks.assign_to_peer_group_channel_in_slack(emails, admin_emails)
+      tasks.assign_to_run_channels_in_slack(emails, admin_emails)
       tasks.assign_zoom_links_to_users(emails)
       tasks.send_onboarding_notification(emails)
     end
