@@ -73,7 +73,7 @@ module RowanBot
     end
 
     def assign_to_peer_group_channel_in_slack(emails, admins)
-      logger.info('Started assigning users to channels in slack')
+      logger.info('Started assigning users to cohort channels in slack')
       admins = admins.map { |ad| { email: ad } }
       users = emails
               .map { |email| salesforce_api.find_participant_by_email(email) }
@@ -84,6 +84,21 @@ module RowanBot
               end
       add_users_to_peer_group_channels(users, admins)
     end
+
+    def assign_to_run_channels_in_slack(emails, admins)
+      logger.info('Started assigning users to run channels in slack')
+      salesforce_api.find_booster_participants_by_emails(emails)
+      admins = admins.map { |ad| { email: ad } }
+      users = emails
+              .map { |email| salesforce_api.find_participant_by_email(email) }
+              .map do |p|
+                pname = p.peer_group.split.last(5)
+                peer_group = ['run', pname[0].to_i.to_s, 'announcements']
+                { email: p.email, peer_group: peer_group.join('-').downcase }
+              end
+      add_users_to_peer_group_channels(users, admins)
+    end
+
 
     def add_users_to_peer_group_channels(users, admins = [])
       channel_names = users.map { |entry| entry[:peer_group] }.uniq
