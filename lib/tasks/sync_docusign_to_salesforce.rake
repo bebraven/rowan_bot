@@ -18,8 +18,10 @@ namespace :sync do
       admin_emails = ENV.fetch('SLACK_ADMIN_EMAILS', '').split(',').map(&:strip)
       tasks.assign_slack_to_users(emails)
       tasks.assign_peer_groups_to_users(emails)
-      sleep(5) # Slack seems to take a sec before it can find the users added above
+      sleep(10) # Slack seems to take a sec before it can find the users added above
+      tasks.slack_api = RowanBot::SlackAPI.new
       tasks.assign_to_peer_group_channel_in_slack(emails, admin_emails)
+      tasks.assign_to_run_channels_in_slack(emails, admin_emails)
       tasks.assign_zoom_links_to_users(emails)
       tasks.send_onboarding_notification(emails)
     end
