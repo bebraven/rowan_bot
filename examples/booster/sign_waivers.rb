@@ -10,6 +10,8 @@ tasks.zoom_api = RowanBot::ZoomAPI.new
 
 emails = tasks.sync_booster_signed_waivers_to_salesforce(1)
 
+p emails
+
 unless emails.empty?
   tasks.assign_peer_groups_to_booster_users(emails)
   tasks.assign_zoom_links_to_booster_participants(emails)

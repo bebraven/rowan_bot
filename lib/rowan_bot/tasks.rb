@@ -47,13 +47,13 @@ module RowanBot
 
     def assign_zoom_links_for_fellows(program_id)
       record_type = 'Fellow'
-      emails = salesforce_api.all_participants(program_id, record_type)
+      emails = salesforce_api.all_participants(program_id, record_type).map(&:email)
       assign_zoom_links_to_participants(emails, record_type)
     end
 
     def assign_zoom_links_for_lcs(program_id)
       record_type = 'Leadership_Coach'
-      emails = salesforce_api.all_participants(program_id, record_type)
+      emails = salesforce_api.all_participants(program_id, record_type).map(&:email)
       assign_zoom_links_to_participants(emails, record_type)
     end
 
@@ -64,7 +64,7 @@ module RowanBot
     def assign_zoom_links_to_participants(emails, record_type)
       logger.info("Started assigning zoom links to users: #{emails}")
       emails.each do |email|
-        participant = salesforce_api.participant_by_email(email, record_type)
+        participant = salesforce_api.find_participant_by_email(email, record_type)
         registration_details = {
           'email' => participant.email,
           'first_name' => participant.first_name,
@@ -72,14 +72,14 @@ module RowanBot
         }
         join_url1 = nil
         join_url2 = nil
-        unless participant.webinar_registration_1.nil? || participant.webinar_link_1.nil?
+        if !participant.webinar_registration_1.nil? && participant.webinar_link_1.nil?
           join_url1 = zoom_api.add_registrant(
             participant.webinar_registration_1,
             registration_details
           )['join_url']
         end
 
-        unless participant.webinar_registration_2.nil? || participant.webinar_link_2.nil?
+        if !participant.webinar_registration_2.nil? && participant.webinar_link_2.nil?
           join_url2 = zoom_api.add_registrant(
             participant.webinar_registration_2,
             registration_details

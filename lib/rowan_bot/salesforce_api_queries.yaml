@@ -61,7 +61,7 @@ PROGRAM_PARTICIPANTS: >
         sObjectType = 'Participant__c'
         AND DeveloperName = %{record_type}
     )
-    AND Status__c = %{participant_status}
+    AND Status__c = 'Enrolled'
     AND Program__r.Id = %{program_id}
 
 LAST_PARTICIPANT_BY_EMAIL_AND_RECORD: >

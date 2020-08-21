@@ -172,7 +172,7 @@ module RowanBot
 
     def fetch_participants_by_emails(emails, record_type)
       fetch_participants(
-        QUERIES['PARTICIPANTS_BY_EMAILS_AND_RECORD'],
+        QUERIES['PARTICIPANTS_BY_EMAILS'],
         email_list: listify(emails),
         record_type: stringify(record_type)
       )
