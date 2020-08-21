@@ -14,7 +14,7 @@ namespace :sync do
 
     unless emails.empty?
       tasks.assign_peer_groups_to_booster_users(emails)
-      tasks.assign_zoom_links_to_users(emails)
+      tasks.assign_zoom_links_to_booster_participants_users(emails)
     end
     tasks.send_onboarding_notification(emails)
   end
