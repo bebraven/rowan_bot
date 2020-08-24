@@ -5,14 +5,20 @@ require 'restforce'
 
 module RowanBot
   # SalesforceAPI class
-  SFParticipant = Struct.new(:id, :email, :first_name, :last_name, :signed_waiver, :peer_group, :cohort_id,
-                             :cohort_letter, :program_id, :program_letter, :webinar_registration_1,
-                             :webinar_registration_2)
+  SFParticipant = Struct.new(:id, :email, :first_name, :last_name,
+                             :signed_waiver, :peer_group, :cohort_id,
+                             :cohort_letter, :program_id, :program_letter,
+                             :webinar_registration_1, :webinar_registration_2,
+                             :webinar_link_1, :webinar_link_2,
+                             :signed_waiver_complete, :canvas_id,
+                             :coaching_partner_role)
   SFPeerGroup = Struct.new(:id, :name, :index)
 
   class SalesforceAPI
     # constants
-    QUERIES = YAML.load_file(File.join(__dir__, 'salesforce_api_queries.yaml'))
+    QUERIES = YAML.load_file(
+      File.join(__dir__, 'salesforce_api_queries.yaml')
+    )
 
     def initialize(params = {})
       @client = Restforce.new(
@@ -29,18 +35,9 @@ module RowanBot
       @participants = {}
     end
 
-    def assign_peer_groups_to_user_emails(emails)
-      emails.each do |email|
-        participant = fetch_booster_participant_by_email(email)
-        assign_peer_groups_to_participant(participant)
-      end
-    end
-
-    def sign_participants_waivers_by_email(emails)
-      # This will make the initial query and make it that's the only query made
-      fetch_booster_participants_by_emails(emails)
+    def sign_participants_waivers_by_email(emails, record_type)
       emails.filter do |email|
-        participant = fetch_booster_participant_by_email(email)
+        participant = fetch_participant_by_email(email, record_type)
         if participant.nil?
           logger.warn("Participant #{email} is not found in Salesforce")
           false
@@ -50,9 +47,13 @@ module RowanBot
       end
     end
 
-    def find_booster_participants_by_emails(emails)
-      fetch_booster_participants_by_emails(emails)
-      emails.map { |email| fetch_booster_participant_by_email(email) }
+    def assign_peer_groups_to_user_emails(emails, record_type)
+      emails.each do |email|
+        participant = fetch_participant_by_email(email, record_type)
+        next unless participant.peer_group.nil?
+
+        assign_peer_groups_to_participant(participant)
+      end
     end
 
     def update_participant_webinar_links(participant_id, first_link, second_link)
@@ -65,8 +66,16 @@ module RowanBot
       )
     end
 
-    def find_participant_by_email(email)
-      fetch_booster_participant_by_email(email)
+    def all_participants(program_id, record_type)
+      fetch_program_participants(program_id, record_type)
+    end
+
+    def find_participants_by_emails(emails, record_type)
+      fetch_participants_by_emails(emails, record_type)
+    end
+
+    def find_participant_by_email(email, record_type)
+      fetch_participant_by_email(email, record_type)
     end
 
     private
@@ -147,7 +156,7 @@ module RowanBot
     end
 
     def query_last_peer_group(program_id, cohort_schedule_id)
-      logger.info('SALESFORCE: Making API Call')
+      logger.info('SALESFORCE: Making API Call getting peer group')
       response = client.query(
         format(
           QUERIES['LAST_COHORT_BY_SCHEDULE_AND_PROGRAM'], {
@@ -161,31 +170,38 @@ module RowanBot
       SFPeerGroup.new(response.Id, response.Name, response.Peer_Group_ID__c)
     end
 
-    # This will be even more optimization if I figure out the multiple
-    # participant for contact possibility and resolution
-    def fetch_booster_participants_by_emails(emails)
-      record_type_id = fetch_participant_record_type_by_id('Booster_Student')
-      logger.info('SALESFORCE: Making API Call')
-      response = client.query(
-        format(
-          QUERIES['PARTICIPANTS_BY_EMAILS_AND_RECORD'],
-          email_list: listify(emails),
-          record_type_id: stringify(record_type_id)
-        )
+    def fetch_participants_by_emails(emails, record_type)
+      fetch_participants(
+        QUERIES['PARTICIPANTS_BY_EMAILS'],
+        email_list: listify(emails),
+        record_type: stringify(record_type)
       )
+    end
+
+    def fetch_program_participants(program_id, record_type)
+      fetch_participants(
+        QUERIES['PROGRAM_PARTICIPANTS'],
+        record_type: stringify(record_type),
+        program_id: stringify(program_id)
+      )
+    end
+
+    def fetch_participants(query, **kwargs)
+      logger.info('SALESFORCE: Making API Call fetch participants')
+      response = client.query(format(query, **kwargs))
       response.map do |res|
         participant = transform_participant(res)
         participants[participant.email] = participant
       end
     end
 
-    def fetch_booster_participant_by_email(email)
-      participants[email] ||= query_booster_participant_by_email(email)
+    def fetch_participant_by_email(email, record_type)
+      participants[email] ||= query_participant_by_email(email, record_type)
     end
 
-    def query_booster_participant_by_email(email)
-      record_type_id = fetch_participant_record_type_by_id('Booster_Student')
-      logger.info('SALESFORCE: Making API Call')
+    def query_participant_by_email(email, record_type)
+      record_type_id = fetch_participant_record_type_by_id(record_type)
+      logger.info('SALESFORCE: Making API Call fetching participant')
       response = client.query(
         format(
           QUERIES['LAST_PARTICIPANT_BY_EMAIL_AND_RECORD'],
@@ -209,9 +225,8 @@ module RowanBot
       logger.info('SALESFORCE: Making API Call')
       client.query(
         format(
-          QUERIES['FIRST_RECORD_TYPE'],
+          QUERIES['FIRST_PARTICIPANT_RECORD_TYPE'],
           {
-            s_object_type: stringify('Participant__c'),
             developer_name: stringify(developer_name)
           }
         )
@@ -221,12 +236,19 @@ module RowanBot
     def transform_participant(response)
       SFParticipant.new(response.Id, response.Contact__r&.Email,
                         response.Contact__r&.Preferred_First_Name__c,
-                        response.Contact__r&.Name, response.Student_Waiver_Signed__c,
+                        response.Contact__r&.Name,
+                        response.Student_Waiver_Signed__c,
                         response.Cohort__r&.Name, response.Cohort_Schedule__r&.Id,
-                        response.Cohort_Schedule__r&.Letter__c, response.Program__r&.Id,
+                        response.Cohort_Schedule__r&.Letter__c,
+                        response.Program__r&.Id,
                         response.Program__r&.Session__c,
                         response.Cohort_Schedule__r&.Webinar_Registration_1__c,
-                        response.Cohort_Schedule__r&.Webinar_Registration_2__c)
+                        response.Cohort_Schedule__r&.Webinar_Registration_2__c,
+                        response.Webinar_Access_1__c,
+                        response.Webinar_Access_2__c,
+                        response.Candidate__r&.Esig_Validated_CPP__c,
+                        response.Contact__r&.Canvas_User_ID__c,
+                        response.Candidate__r&.Coach_Partner_Role__c)
     end
 
     def listify(list)

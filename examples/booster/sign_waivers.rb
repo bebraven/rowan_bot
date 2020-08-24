@@ -8,18 +8,12 @@ tasks.salesforce_api = RowanBot::SalesforceAPI.new
 tasks.slack_api = RowanBot::SlackAPI.new
 tasks.zoom_api = RowanBot::ZoomAPI.new
 
-admin_emails = ENV.fetch('SLACK_ADMIN_EMAILS', '').split(',').map(&:strip)
+emails = tasks.sync_booster_signed_waivers_to_salesforce(1)
 
-emails = tasks.sync_signed_waivers_to_salesforce(1)
+p emails
 
 unless emails.empty?
-  tasks.assign_slack_to_users(emails)
-  sleep 5
-  # Giving a fresh instance
-  tasks.slack_api = RowanBot::SlackAPI.new
-  tasks.assign_peer_groups_to_users(emails)
-  tasks.assign_to_run_channels_in_slack(emails, admin_emails)
-  tasks.assign_to_peer_group_channel_in_slack(emails, admin_emails)
-  tasks.assign_zoom_links_to_users(emails)
-  tasks.send_onboarding_notification(emails)
+  tasks.assign_peer_groups_to_booster_users(emails)
+  tasks.assign_zoom_links_to_booster_participants(emails)
 end
+tasks.send_onboarding_notification(emails)
