@@ -16,7 +16,7 @@ module RowanBot
       logger.info('Started adding participants')
       participants.map do |participant|
         response = zoom_api.add_registrant(meeting_id, participant)
-        { **participant, 'join_url' => response['join_url'] }
+        participant.merge({ 'join_url' => response['join_url'] })
       end
     end
 
