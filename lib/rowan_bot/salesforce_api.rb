@@ -11,7 +11,7 @@ module RowanBot
                              :webinar_registration_1, :webinar_registration_2,
                              :webinar_link_1, :webinar_link_2,
                              :signed_waiver_complete, :canvas_id,
-                             :coaching_partner_role)
+                             :coaching_partner_role, :peer_group_lc_name)
   SFPeerGroup = Struct.new(:id, :name, :index)
 
   class SalesforceAPI
@@ -248,7 +248,8 @@ module RowanBot
                         response.Webinar_Access_2__c,
                         response.Candidate__r&.Esig_Validated_CPP__c,
                         response.Contact__r&.Canvas_User_ID__c,
-                        response.Candidate__r&.Coach_Partner_Role__c)
+                        response.Candidate__r&.Coach_Partner_Role__c,
+                        response.Cohort__r&.DLRS_LC_LastName__c)
     end
 
     def listify(list)

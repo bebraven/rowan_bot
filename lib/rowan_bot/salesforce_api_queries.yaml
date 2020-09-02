@@ -12,7 +12,8 @@ PARTICIPANTS_BY_EMAILS: >
     Program__r.Session__c,
     Contact__r.Email,
     Contact__r.Preferred_First_Name__c,
-    Contact__r.Name
+    Contact__r.Name,
+    Cohort__r.DLRS_LC_LastName__c
   FROM
     Participant__c
   WHERE
@@ -48,7 +49,8 @@ PROGRAM_PARTICIPANTS: >
     Contact__r.Name,
     Candidate__r.Esig_Validated_CPP__c,
     Contact__r.Canvas_User_ID__c,
-    Candidate__r.Coach_Partner_Role__c
+    Candidate__r.Coach_Partner_Role__c,
+    Cohort__r.DLRS_LC_LastName__c
   FROM
     Participant__c
   WHERE
@@ -77,7 +79,8 @@ LAST_PARTICIPANT_BY_EMAIL_AND_RECORD: >
     Program__r.Session__c,
     Contact__r.Email,
     Contact__r.Preferred_First_Name__c,
-    Contact__r.Name
+    Contact__r.Name,
+    Cohort__r.DLRS_LC_LastName__c
   FROM
     Participant__c
   WHERE

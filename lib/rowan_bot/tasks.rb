@@ -67,14 +67,14 @@ module RowanBot
         participant = salesforce_api.find_participant_by_email(email, record_type)
         prefix = if record_type.eql?('Leadership_Coach')
                    'LC'
-                 elsif !(participant.peer_group.nil? || participant.peer_group.empty?)
-                   participant.peer_group
+                 elsif !(participant.peer_group_lc_name.nil? || participant.peer_group_lc_name.empty?)
+                   participant.peer_group_lc_name
                  else
                    'Fellow'
                  end
         registration_details = {
-          'email' => "#{prefix} - ",
-          'first_name' => participant.first_name,
+          'email' => participant.email,
+          'first_name' => "#{prefix} -",
           'last_name' => participant.last_name
         }
         join_url1 = nil
