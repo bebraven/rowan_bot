@@ -65,8 +65,15 @@ module RowanBot
       logger.info("Started assigning zoom links to users: #{emails}")
       emails.each do |email|
         participant = salesforce_api.find_participant_by_email(email, record_type)
+        prefix = if record_type.eql?('Leadership_Coach')
+                   'LC'
+                 elsif !(participant.peer_group.nil? || participant.peer_group.empty?)
+                   participant.peer_group
+                 else
+                   'Fellow'
+                 end
         registration_details = {
-          'email' => participant.email,
+          'email' => "#{prefix} - ",
           'first_name' => participant.first_name,
           'last_name' => participant.last_name
         }
