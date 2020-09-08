@@ -26,6 +26,14 @@ module RowanBot
       post(url, data)
     end
 
+    def cancel_registrants(meeting_id, registrants)
+      logger.info("Cancelling registration for: #{registrants.join(', ')}")
+      url = "#{BASE_URL}/meetings/#{meeting_id}/registrants/status"
+      data = { 'action' => 'cancel', 'registrants' => registrants }
+
+      put(url, data)
+    end
+
     def update_meeting_for_registration(meeting_id)
       logger.info("Updating meeting for registration: #{meeting_id}")
       url = "#{BASE_URL}/meetings/#{meeting_id}"
@@ -63,6 +71,12 @@ module RowanBot
       extract_response(response)
     end
 
+    def put(url, data)
+      response = Faraday.put(url, data.to_json, shared_headers)
+
+      extract_response(response)
+    end
+
     def extract_response(response)
       unless [201, 200, 204].include?(response.status)
         logger.warn('Request to zoom was not successful')
@@ -70,7 +84,7 @@ module RowanBot
         raise "Something went wrong communicating with zoom: #{response.body}"
       end
 
-      JSON.parse(response.body)
+      JSON.parse(response.body) unless response.body.empty?
     end
 
     def shared_headers
