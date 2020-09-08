@@ -20,6 +20,12 @@ module RowanBot
       end
     end
 
+    def cancel_registrants_from_meeting(meeting_id, participants)
+      logger.info('Started cancelling from meeting')
+      participants = participants.map { |participant| participant['email'] }
+      zoom_api.cancel_registrants(meeting_id, participants)
+    end
+
     def create_weekly_zoom_meeting(user_id, meeting_details)
       logger.info('Started creating weekly meeting')
       zoom_api.create_meeting(user_id, meeting_details)
