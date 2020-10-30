@@ -51,28 +51,35 @@ module RowanBot
       slack_api.invite_users_to_slack(emails)
     end
 
-    def assign_zoom_links_for_fellows(program_id)
+    def assign_zoom_links_for_fellows(program_id, force_update: false)
       record_type = 'Fellow'
       emails = salesforce_api.all_participants(program_id, record_type).map(&:email)
-      assign_zoom_links_to_participants(emails, record_type)
+      assign_zoom_links_to_participants(emails, record_type, force_update)
     end
 
-    def assign_zoom_links_for_lcs(program_id)
+    def assign_zoom_links_for_lcs(program_id, force_update: false)
       record_type = 'Leadership_Coach'
       emails = salesforce_api.all_participants(program_id, record_type).map(&:email)
-      assign_zoom_links_to_participants(emails, record_type)
+      assign_zoom_links_to_participants(emails, record_type, force_update)
     end
 
     def assign_zoom_links_to_booster_participants(emails)
       assign_zoom_links_to_participants(emails, 'Booster_Student')
     end
 
-    def assign_zoom_links_to_participants(emails, record_type)
+    def assign_zoom_links_for_program(program_id, force_update)
+      assign_zoom_links_for_lcs(program_id, force_update: force_update)
+      assign_zoom_links_for_fellows(program_id, force_update: force_update)
+    end
+
+    def assign_zoom_links_to_participants(emails, record_type, force_update=false)
       logger.info("Started assigning zoom links to users: #{emails}")
       emails.each do |email|
         participant = salesforce_api.find_participant_by_email(email, record_type)
-        prefix = if record_type.eql?('Leadership_Coach')
-                   'LC'
+        prefix = if record_type.eql?('Leadership_Coach') && participant.coaching_partner_role.eql?('Coach Partner')
+                    'CP'
+                 elsif record_type.eql?('Leadership_Coach')
+                    'LC'
                  elsif !(participant.peer_group_lc_name.nil? || participant.peer_group_lc_name.empty?)
                    participant.peer_group_lc_name
                  else
@@ -85,14 +92,14 @@ module RowanBot
         }
         join_url1 = nil
         join_url2 = nil
-        if !participant.webinar_registration_1.nil? && participant.webinar_link_1.nil?
+        if !participant.webinar_registration_1.nil? && (participant.webinar_link_1.nil? || force_update)
           join_url1 = zoom_api.add_registrant(
             participant.webinar_registration_1,
             registration_details
           )['join_url']
         end
 
-        if !participant.webinar_registration_2.nil? && participant.webinar_link_2.nil?
+        if !participant.webinar_registration_2.nil? && (participant.webinar_link_2.nil? || force_update)
           join_url2 = zoom_api.add_registrant(
             participant.webinar_registration_2,
             registration_details

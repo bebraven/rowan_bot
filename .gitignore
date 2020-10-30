@@ -15,8 +15,8 @@
 
 # Secrets
 *secret*
+.env
 
 # Ignore vim related files
 *.swp
 *.swo
-
