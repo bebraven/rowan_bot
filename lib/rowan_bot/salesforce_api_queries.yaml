@@ -13,6 +13,7 @@ PARTICIPANTS_BY_EMAILS: >
     Contact__r.Email,
     Contact__r.Preferred_First_Name__c,
     Contact__r.Name,
+    Cohort__r.DLRS_LC_FirstName__c,
     Cohort__r.DLRS_LC_LastName__c
   FROM
     Participant__c
@@ -50,6 +51,7 @@ PROGRAM_PARTICIPANTS: >
     Candidate__r.Esig_Validated_CPP__c,
     Contact__r.Canvas_User_ID__c,
     Candidate__r.Coach_Partner_Role__c,
+    Cohort__r.DLRS_LC_FirstName__c,
     Cohort__r.DLRS_LC_LastName__c
   FROM
     Participant__c
@@ -80,22 +82,24 @@ LAST_PARTICIPANT_BY_EMAIL_AND_RECORD: >
     Contact__r.Email,
     Contact__r.Preferred_First_Name__c,
     Contact__r.Name,
+    Candidate__r.Coach_Partner_Role__c,
+    Cohort__r.DLRS_LC_FirstName__c,
     Cohort__r.DLRS_LC_LastName__c
   FROM
     Participant__c
   WHERE
     Contact__r.Email = %{email}
     AND RecordTypeId = %{record_type_id}
-  ORDER BY 
+  ORDER BY
     Id DESC
   LIMIT 1
 
 FIRST_PARTICIPANT_RECORD_TYPE: >
-  SELECT 
+  SELECT
     Id
   FROM
     RecordType
-  WHERE 
+  WHERE
     sObjectType = 'Participant__c'
     AND DeveloperName = %{developer_name}
   LIMIT 1
@@ -121,4 +125,18 @@ LAST_COHORT_BY_SCHEDULE_AND_PROGRAM: >
     AND Program__c = %{program_id}
   ORDER BY
     Peer_Group_ID__c DESC
+  LIMIT 1
+
+PROGRAM_BY_ID: >
+  SELECT
+    Id,
+    SLACK_USER__c
+    SLACK_PASSWORD__c,
+    SLACK_TOKEN__c,
+    SLACK_URL__c,
+    SLACK_ADMIN_EMAILS__c
+  FROM
+    Program__c
+  WHERE
+    Id = %{program_id}
   LIMIT 1
