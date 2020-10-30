@@ -11,8 +11,9 @@ module RowanBot
                              :webinar_registration_1, :webinar_registration_2,
                              :webinar_link_1, :webinar_link_2,
                              :signed_waiver_complete, :canvas_id,
-                             :coaching_partner_role, :peer_group_lc_name)
+                             :coaching_partner_role, :peer_group_lc_name, :peer_group_lc_last_name)
   SFPeerGroup = Struct.new(:id, :name, :index)
+  SFProgram = Struct.new(:id, :slack_url, :slack_token, :slack_user, :slack_password, :slack_admin_emails)
 
   class SalesforceAPI
     # constants
@@ -57,7 +58,7 @@ module RowanBot
     end
 
     def update_participant_webinar_links(participant_id, first_link, second_link)
-      logger.info('SALESFORCE: Making API Call')
+      logger.info("SALESFORCE: Making API Call to update participants #{participant_id}")
       client.update(
         'Participant__c',
         Id: participant_id,
@@ -249,7 +250,19 @@ module RowanBot
                         response.Candidate__r&.Esig_Validated_CPP__c,
                         response.Contact__r&.Canvas_User_ID__c,
                         response.Candidate__r&.Coach_Partner_Role__c,
+                        response.Cohort__r&.DLRS_LC_FirstName__c,
                         response.Cohort__r&.DLRS_LC_LastName__c)
+    end
+
+    def transform_program(response)
+      SFProgram.new(response.Id,
+                    response.SLACK_URL__c,
+                    response.SLACK_TOKEN__c,
+                    response.SLACK_USER__c,
+                    response.SLACK_PASSWORD__c,
+                    response.SLACK_ADMIN_EMAILS__c
+      )
+
     end
 
     def listify(list)
