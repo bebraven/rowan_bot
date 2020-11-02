@@ -51,12 +51,6 @@ module RowanBot
       slack_api.invite_users_to_slack(emails)
     end
 
-    def assign_zoom_links_for_fellows(program_id, force_update: false)
-      record_type = 'Fellow'
-      emails = salesforce_api.all_participants(program_id, record_type).map(&:email)
-      assign_zoom_links_to_participants(emails, record_type, force_update)
-    end
-
     def sync_zoom_links_for_record_type(program_id, record_type, force_update: false)
       all_participants = salesforce_api.all_participants(program_id, record_type)
       enrolled_emails = all_participants.filter { |participant| participant.status.eql?('Enrolled') }.map(&:email)
