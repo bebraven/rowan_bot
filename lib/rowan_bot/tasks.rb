@@ -57,19 +57,21 @@ module RowanBot
       assign_zoom_links_to_participants(emails, record_type, force_update)
     end
 
-    def assign_zoom_links_for_lcs(program_id, force_update: false)
-      record_type = 'Leadership_Coach'
-      emails = salesforce_api.all_participants(program_id, record_type).map(&:email)
-      assign_zoom_links_to_participants(emails, record_type, force_update)
+    def sync_zoom_links_for_record_type(program_id, record_type, force_update: false)
+      all_participants = salesforce_api.all_participants(program_id, record_type)
+      enrolled_emails = all_participants.filter { |participant| participant.status.eql?('Enrolled') }.map(&:email)
+      assign_zoom_links_to_participants(enrolled_emails, record_type, force_update)
+      dropped_emails = all_participants.filter { |participant| participant.status.eql?('Dropped') }.map(&:email)
+      unassign_zoom_links_to_participants(dropped_emails, record_type)
     end
 
     def assign_zoom_links_to_booster_participants(emails)
       assign_zoom_links_to_participants(emails, 'Booster_Student')
     end
 
-    def assign_zoom_links_for_program(program_id, force_update)
-      assign_zoom_links_for_lcs(program_id, force_update: force_update)
-      assign_zoom_links_for_fellows(program_id, force_update: force_update)
+    def sync_zoom_links_for_program(program_id, force_update)
+      sync_zoom_links_for_record_type(program_id, 'Leadership_Coach', force_update: force_update)
+      sync_zoom_links_for_record_type(program_id, 'Fellow', force_update: force_update)
     end
 
     def assign_zoom_links_to_participants(emails, record_type, force_update=false)
@@ -112,6 +114,27 @@ module RowanBot
           salesforce_api.update_participant_webinar_links(participant.id, join_url1, join_url2)
           logger.info("Added zoom link to: #{email}")
         end
+      end
+    end
+
+    def unassign_zoom_links_to_participants(emails, record_type)
+      logger.info("Started removing zoom links for these users: #{emails}")
+      emails.each do |email|
+        participant = salesforce_api.find_participant_by_email(email, record_type)
+        if !participant.webinar_registration_1.nil? && !participant.webinar_link_1.nil?
+          zoom_api.cancel_registrants(
+            participant.webinar_registration_1, [email]
+          )
+        end
+
+        if !participant.webinar_registration_2.nil? && !participant.webinar_link_2.nil?
+          zoom_api.cancel_registrants(
+            participant.webinar_registration_2, [email]
+          )
+        end
+
+        salesforce_api.update_participant_webinar_links(participant.id, nil, nil)
+        logger.info("Removed zoom link for: #{email}")
       end
     end
 
