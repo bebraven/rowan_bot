@@ -28,6 +28,7 @@ module RowanBot
 
     def cancel_registrants(meeting_id, registrants)
       logger.info("Cancelling registration for: #{registrants.join(', ')}")
+      registrants = registrants.map { |registrant| {'email' => registrant } }
       url = "#{BASE_URL}/meetings/#{meeting_id}/registrants/status"
       data = { 'action' => 'cancel', 'registrants' => registrants }
 
