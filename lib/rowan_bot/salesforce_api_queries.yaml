@@ -3,6 +3,8 @@ PARTICIPANTS_BY_EMAILS: >
   SELECT
     Id,
     Student_Waiver_Signed__c,
+    Status__c,
+    Candidate__r.Status__c,
     Cohort__r.Name,
     Cohort_Schedule__r.Id,
     Cohort_Schedule__r.Letter__c,
@@ -30,12 +32,13 @@ PARTICIPANTS_BY_EMAILS: >
         sObjectType = 'Participant__c'
         AND DeveloperName = %{record_type}
     )
-    AND Status__c = 'Enrolled'
 
 PROGRAM_PARTICIPANTS: >
   SELECT
     Id,
     Student_Waiver_Signed__c,
+    Status__c,
+    Candidate__r.Status__c,
     Webinar_Access_1__c,
     Webinar_Access_2__c,
     Cohort__r.Name,
@@ -65,13 +68,14 @@ PROGRAM_PARTICIPANTS: >
         sObjectType = 'Participant__c'
         AND DeveloperName = %{record_type}
     )
-    AND Status__c = 'Enrolled'
     AND Program__r.Id = %{program_id}
 
 LAST_PARTICIPANT_BY_EMAIL_AND_RECORD: >
   SELECT
     Id,
     Student_Waiver_Signed__c,
+    Status__c,
+    Candidate__r.Status__c,
     Cohort__r.Name,
     Cohort_Schedule__r.Id,
     Cohort_Schedule__r.Letter__c,
