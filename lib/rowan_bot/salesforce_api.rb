@@ -11,7 +11,8 @@ module RowanBot
                              :webinar_registration_1, :webinar_registration_2,
                              :webinar_link_1, :webinar_link_2,
                              :signed_waiver_complete, :canvas_id,
-                             :coaching_partner_role, :peer_group_lc_name, :peer_group_lc_last_name)
+                             :coaching_partner_role, :peer_group_lc_name,
+                             :peer_group_lc_last_name, :status, :candidate_status)
   SFPeerGroup = Struct.new(:id, :name, :index)
   SFProgram = Struct.new(:id, :slack_url, :slack_token, :slack_user, :slack_password, :slack_admin_emails)
 
@@ -251,7 +252,9 @@ module RowanBot
                         response.Contact__r&.Canvas_User_ID__c,
                         response.Candidate__r&.Coach_Partner_Role__c,
                         response.Cohort__r&.DLRS_LC_FirstName__c,
-                        response.Cohort__r&.DLRS_LC_LastName__c)
+                        response.Cohort__r&.DLRS_LC_LastName__c,
+                        response.Status__c,
+                        response.Candidate__r&.Status__c)
     end
 
     def transform_program(response)
