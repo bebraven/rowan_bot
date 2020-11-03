@@ -33,16 +33,34 @@ x = has_cohort.inject({}) do |acc, parts|
   acc
 end
 
+
 slack_channels = slack_api.create_peer_group_channels(x.keys).first
 slack_channels = slack_channels.inject({}) do |acc, chan|
   acc[chan[:name]] = chan[:id]
   acc
 end
 
+current_pairing = {}
+slack_channels.each do |channel, channel_id|
+  mems = slack_api.get_channel_members(channel_id)
+  mems.each do |mem|
+    current_pairing[mem] = { name: channel, id: channel_id }
+  end
+end
+
 x.each do |cohort_name, emails|
   pts = emails.map { |email| { email: email } }
-  pts = pts + slack_admins
   slack_users = slack_api.add_slack_ids_to_users(pts)
-  sl_users = slack_users.map { |p| p[:slack_id] }
-  slack_api.add_users_to_peer_group_channel(slack_channels[cohort_name], sl_users)
+  slack_admin_users = slack_api.add_slack_ids_to_users(slack_admins)
+  to_add = slack_admin_users.map { |u| u[:slack_id] }
+  slack_users.each do |sl_u|
+    sl_id = sl_u[:slack_id]
+    if current_pairing[sl_id].nil?
+      to_add << sl_id
+    elsif !current_pairing[sl_id][:name].eql?(cohort_name)
+      to_add << sl_id
+      slack_api.remove_user_from_channel(current_pairing[sl_id][:id], sl_id)
+    end
+  end
+  slack_api.add_users_to_peer_group_channel(slack_channels[cohort_name], to_add)
 end

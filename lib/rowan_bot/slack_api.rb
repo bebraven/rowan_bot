@@ -93,6 +93,15 @@ module RowanBot
       client.conversations_invite(channel: channel_id, users: user_ids.join(','))
     end
 
+    def remove_user_from_channel(channel_id, user_id)
+      logger.info("Remove user from #{channel_id}")
+      client.conversations_kick(channel: channel_id, user: user_id)
+    end
+
+    def get_channel_members(channel_id)
+      client.conversations_members(channel: channel_id).members
+    end
+
     def add_slack_ids_to_users(users)
       slack_users = client.users_list.members
       users.map do |user|
