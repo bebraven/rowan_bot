@@ -68,6 +68,10 @@ module RowanBot
       )
     end
 
+    def find_program_by_id(program_id)
+      query_program_by_id(program_id)
+    end
+
     def all_participants(program_id, record_type)
       fetch_program_participants(program_id, record_type)
     end
@@ -172,6 +176,20 @@ module RowanBot
       SFPeerGroup.new(response.Id, response.Name, response.Peer_Group_ID__c)
     end
 
+    def query_program_by_id(program_id)
+      logger.info('SALESFORCE: Making API Call to get program')
+      response = client.query(
+        format(
+          QUERIES['PROGRAM_BY_ID'], {
+            program_id: stringify(program_id)
+          }
+        )
+      ).first
+      return response if response.nil?
+
+      transform_program(response)
+    end
+
     def fetch_participants_by_emails(emails, record_type)
       fetch_participants(
         QUERIES['PARTICIPANTS_BY_EMAILS'],
@@ -187,6 +205,7 @@ module RowanBot
         program_id: stringify(program_id)
       )
     end
+
 
     def fetch_participants(query, **kwargs)
       logger.info('SALESFORCE: Making API Call fetch participants')

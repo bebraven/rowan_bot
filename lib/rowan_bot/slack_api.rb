@@ -9,9 +9,9 @@ module RowanBot
   class SlackAPI
     include Capybara::DSL
 
-    def initialize
-      chrome_shim = ENV.fetch('GOOGLE_CHROME_SHIM', nil)
-      chrome_host = ENV.fetch('SELENIUM_HOST', nil)
+    def initialize(params = {})
+      chrome_shim = params.fetch(:chrome_shim, ENV.fetch('GOOGLE_CHROME_SHIM', nil))
+      chrome_host = params.fetch(:chrome_host, ENV.fetch('SELENIUM_HOST', nil))
 
       # This is for Heroku. See: https://elements.heroku.com/buildpacks/heroku/heroku-buildpack-google-chrome
       if chrome_shim
@@ -38,7 +38,7 @@ module RowanBot
           Capybara::Selenium::Driver.new(
             app,
             browser: :remote,
-            url: "http://#{ENV['SELENIUM_HOST']}:#{ENV['SELENIUM_PORT']}/wd/hub",
+            url: "http://#{params.fetch(:selenium_host, ENV['SELENIUM_HOST'])}:#{params.fetch(:selenium_port, ENV['SELENIUM_PORT'])}/wd/hub",
             desired_capabilities: caps
           )
         end
@@ -52,13 +52,13 @@ module RowanBot
       Capybara.match = :first
 
       Slack.configure do |config|
-        config.token = ENV['SLACK_TOKEN']
+        config.token = params.fetch(:slack_token, ENV['SLACK_TOKEN'])
       end
 
       @client = Slack::Web::Client.new
-      @slack_user = ENV['SLACK_USER']
-      @slack_password = ENV['SLACK_PASSWORD']
-      @slack_url = ENV['SLACK_URL']
+      @slack_user = params.fetch(:slack_user, ENV['SLACK_USER'])
+      @slack_password = params.fetch(:slack_password, ENV['SLACK_PASSWORD'])
+      @slack_url = params.fetch(:slack_url, ENV['SLACK_URL'])
     end
 
     def send_onboarding_notification(emails)
@@ -91,6 +91,15 @@ module RowanBot
     def add_users_to_peer_group_channel(channel_id, user_ids)
       logger.info("Adding users to #{channel_id}")
       client.conversations_invite(channel: channel_id, users: user_ids.join(','))
+    end
+
+    def remove_user_from_channel(channel_id, user_id)
+      logger.info("Remove user from #{channel_id}")
+      client.conversations_kick(channel: channel_id, user: user_id)
+    end
+
+    def get_channel_members(channel_id)
+      client.conversations_members(channel: channel_id).members
     end
 
     def add_slack_ids_to_users(users)
