@@ -213,9 +213,12 @@ module RowanBot
       participants = all_participants.filter { |participant| participant.status.eql?('Enrolled') || participant.status.eql?('Dropped') }
 
       has_cohort = participants.filter { |participant| !participant.peer_group.nil? }
-      x = has_cohort.inject({}) do |acc, parts|
+      has_cohort = has_cohort.map { |p| { email: p.email, participant: p } }
+      has_cohort = slack_api.add_slack_ids_to_users(has_cohort)
+      x = has_cohort.inject({}) do |acc, obj|
+        parts = obj[:participant]
         channel = cohort_channel_name(parts)
-        obj = { email: parts.email, is_enrolled: parts.status.eql?('Enrolled') }
+        obj = { email: parts.email, is_enrolled: parts.status.eql?('Enrolled'), slack_id: obj[:slack_id] }
         if acc[channel].nil?
           acc[channel] = [obj]
         else
@@ -225,11 +228,12 @@ module RowanBot
       end
 
       slack_channels = slack_api.create_peer_group_channels(x.keys).first
-      sleep(10)
       slack_channels = slack_channels.inject({}) do |acc, chan|
         acc[chan[:name]] = chan[:id]
         acc
       end
+
+      slack_admin_users = slack_api.add_slack_ids_to_users(slack_admins)
 
       current_pairing = {}
       slack_channels.each do |channel, channel_id|
@@ -240,18 +244,13 @@ module RowanBot
       end
 
       x.each do |cohort_name, objs|
-        pts = objs.map { |obj| { email: obj[:email], is_enrolled: obj[:is_enrolled] } }
-        slack_users = slack_api.add_slack_ids_to_users(pts)
-        sleep(10)
-        slack_admin_users = slack_api.add_slack_ids_to_users(slack_admins)
-        sleep(10)
+        slack_users = objs.map { |obj| { email: obj[:email], is_enrolled: obj[:is_enrolled], slack_id: obj[:slack_id] } }
         to_add = slack_admin_users.map { |u| u[:slack_id] }
         slack_users.each do |sl_u|
           sl_id = sl_u[:slack_id]
           if !sl_u[:is_enrolled] && !current_pairing[sl_id].nil?
             # User is dropped
             slack_api.remove_user_from_channel(current_pairing[sl_id][:id], sl_id)
-            sleep(10)
             next
           end
 
