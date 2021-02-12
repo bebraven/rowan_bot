@@ -103,7 +103,9 @@ module RowanBot
     end
 
     def add_slack_ids_to_users(users)
-      slack_users = client.users_list.members
+      slack_users = []
+      client.users_list { |response| slack_users.concat(response.members) } # handles pagination
+
       users.map do |user|
         slack_user = slack_users.find { |slack_u| slack_u.profile.email.eql?(user[:email]) }
         raise "Slack user #{user[:email]} is not in this workspace" if slack_user.nil?
